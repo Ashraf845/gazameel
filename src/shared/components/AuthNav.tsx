@@ -21,6 +21,7 @@ export function AuthNav() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileInfo | null>(null);
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,13 +95,27 @@ export function AuthNav() {
   }, [open]);
 
   async function signOut() {
+    if (busy) return;
+    setBusy(true);
     try {
       sessionStorage.removeItem("gazameel-welcome-seen");
-      await fetch("/api/auth/signout", { method: "POST" });
+      const supabase = createClient();
+      await Promise.race([
+        Promise.allSettled([
+          supabase
+            ? supabase.auth.signOut({ scope: "local" })
+            : Promise.resolve(),
+          fetch("/api/auth/signout", {
+            method: "POST",
+            signal: AbortSignal.timeout(4000),
+          }),
+        ]),
+        new Promise((r) => setTimeout(r, 4500)),
+      ]);
     } catch {
-      /* ignore */
+      /* نكمّل للرئيسية حتى لو الشبكة علقت */
     }
-    window.location.href = "/";
+    window.location.replace("/");
   }
 
   if (!user) {
@@ -213,9 +228,10 @@ export function AuthNav() {
               type="button"
               role="menuitem"
               onClick={signOut}
-              className="w-full rounded px-3 py-2 text-right text-sm text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--accent-gold)_8%,transparent)] hover:text-[var(--text-primary)]"
+              disabled={busy}
+              className="w-full rounded px-3 py-2 text-right text-sm text-[var(--text-secondary)] hover:bg-[color-mix(in_srgb,var(--accent-gold)_8%,transparent)] hover:text-[var(--text-primary)] disabled:opacity-60"
             >
-              خروج
+              {busy ? "جارٍ الخروج…" : "خروج"}
             </button>
           </div>
         </div>

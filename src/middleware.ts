@@ -13,7 +13,8 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (
     pathname.startsWith("/api/telegram/") ||
-    pathname.startsWith("/api/cron/")
+    pathname.startsWith("/api/cron/") ||
+    pathname.startsWith("/api/auth/signout")
   ) {
     return NextResponse.next();
   }
@@ -62,6 +63,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api/telegram/|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|csv)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/telegram/|api/cron/|api/auth/signout|.*\\.(?:svg|png|jpg|jpeg|gif|webp|csv)$).*)",
   ],
 };
