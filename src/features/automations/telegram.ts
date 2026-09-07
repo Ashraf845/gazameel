@@ -374,15 +374,13 @@ async function handleCommand(
   }
 
   if (text.startsWith("/whoami")) {
-    await bot.api.sendMessage(
-      chatId,
-      [
-        "رقمك في تيليجرام:",
-        `chat_id: ${chatId}`,
-        "",
-        "إن كنت أدمن المنصة، ضع هذا الرقم في ADMIN_TELEGRAM_CHAT_ID داخل .env.local ثم أعد تشغيل الخادم.",
-      ].join("\n")
-    );
+    const adminId = getAdminChatId();
+    const isAdmin = !!adminId && String(chatId) === adminId;
+    const lines = ["رقمك في تيليجرام:", `chat_id: ${chatId}`];
+    if (isAdmin) {
+      lines.push("", "تم التعرف عليك كأدمن المنصة. أزرار الموافقة/الرفض تصلك هنا.");
+    }
+    await bot.api.sendMessage(chatId, lines.join("\n"));
     return;
   }
 
