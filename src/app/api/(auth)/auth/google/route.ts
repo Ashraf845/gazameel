@@ -5,13 +5,37 @@ import { getSupabasePublicEnv, type CookieToSet, withPersistentCookieOptions, AU
 /** PKCE — يبدأ OAuth ويحفظ code_verifier في cookie → يرجع لـ /api/auth/callback */
 export async function GET(request: NextRequest) {
   const env = getSupabasePublicEnv();
-  const origin = request.nextUrl.origin;
+  const requestOrigin = request.nextUrl.origin;
+  const configuredAppUrl =
+    process.env.NODE_ENV === "production"
+      ? process.env.NEXT_PUBLIC_APP_URL?.trim()
+      : undefined;
+  let origin = requestOrigin;
+
+  if (configuredAppUrl) {
+    try {
+      origin = new URL(configuredAppUrl).origin;
+    } catch {
+      /* استخدم دومين الطلب إذا كانت القيمة غير صالحة */
+    }
+  }
 
   if (!env) {
     return NextResponse.redirect(`${origin}/login?error=supabase_config`);
   }
 
-  const redirectTo = `${origin}/api/auth/callback?next=/onboarding`;
+  let next = request.nextUrl.searchParams.get("next") ?? "/hub";
+  if (!next.startsWith("/") || next.startsWith("//")) next = "/hub";
+
+  // ابدأ PKCE على الدومين الرسمي نفسه كي يصل verifier cookie إلى callback.
+  if (origin !== requestOrigin) {
+    const canonicalStart = new URL("/api/auth/google", origin);
+    canonicalStart.searchParams.set("next", next);
+    return NextResponse.redirect(canonicalStart);
+  }
+
+  const callbackUrl = new URL("/api/auth/callback", origin);
+  callbackUrl.searchParams.set("next", next);
   let cookiesToApply: CookieToSet[] = [];
 
   const supabase = createServerClient(env.url, env.anonKey, {
@@ -29,7 +53,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo,
+      redirectTo: callbackUrl.toString(),
       skipBrowserRedirect: true,
       queryParams: {
         // تسجيل الخروج من Gazameel لا يُخرج المستخدم من Google نفسه.

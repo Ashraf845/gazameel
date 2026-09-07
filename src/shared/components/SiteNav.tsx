@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const PRIMARY = [
   { href: "/", label: "الرئيسية" },
   { href: "/hub", label: "المكتبة" },
   { href: "/quiz", label: "اختبارات" },
-  { href: "/upload", label: "ساهم" },
+  { href: "/upload", label: "رفع ملف", featured: true },
   { href: "/calendar", label: "التقويم" },
 ];
 
@@ -26,10 +26,10 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
 
-  useEffect(() => {
+  function closeMenus() {
     setOpen(false);
     setMoreOpen(false);
-  }, [pathname]);
+  }
 
   const extra = isAdmin ? [{ href: "/admin", label: "أدمن" }] : [];
   const all = [...PRIMARY, ...extra, ...MORE];
@@ -60,8 +60,14 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
           <Link
             key={l.href}
             href={l.href}
-            className={`${linkBase} ${active(l.href) ? linkActive : ""}`}
+            onClick={closeMenus}
+            className={`${linkBase} ${
+              l.featured
+                ? "inline-flex items-center gap-1.5 border border-[var(--accent-gold)] text-[var(--text-primary)]"
+                : ""
+            } ${active(l.href) ? linkActive : ""}`}
           >
+            {l.featured ? <UploadIcon /> : null}
             {l.label}
           </Link>
         ))}
@@ -69,6 +75,7 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
           <Link
             key={l.href}
             href={l.href}
+            onClick={closeMenus}
             className={`${linkBase} ${active(l.href) ? linkActive : ""}`}
           >
             {l.label}
@@ -88,6 +95,7 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
                 <Link
                   key={l.href}
                   href={l.href}
+                  onClick={closeMenus}
                   className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:bg-[color-mix(in_srgb,var(--accent-gold)_8%,transparent)]"
                 >
                   {l.label}
@@ -105,10 +113,14 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
               <Link
                 key={l.href}
                 href={l.href}
+                onClick={closeMenus}
                 className={`rounded px-2 py-2 ${linkBase} ${
-                  active(l.href) ? linkActive : ""
-                }`}
+                  l.href === "/upload"
+                    ? "flex items-center gap-2 border border-[var(--accent-gold)] text-[var(--text-primary)]"
+                    : ""
+                } ${active(l.href) ? linkActive : ""}`}
               >
+                {l.href === "/upload" ? <UploadIcon /> : null}
                 {l.label}
               </Link>
             ))}
@@ -116,5 +128,24 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
         </div>
       )}
     </div>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4 shrink-0 text-[var(--accent-gold)]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 16V4" />
+      <path d="m7 9 5-5 5 5" />
+      <path d="M5 14v5h14v-5" />
+    </svg>
   );
 }
