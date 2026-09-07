@@ -1,0 +1,52 @@
+import { createServerClient } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabasePublicEnv } from "@/shared/lib/supabase/config";
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Record<string, unknown>;
+};
+
+/** PKCE — يبدأ OAuth ويحفظ code_verifier في cookie → يرجع لـ /api/auth/callback */
+export async function GET(request: NextRequest) {
+  const env = getSupabasePublicEnv();
+  const origin = request.nextUrl.origin;
+
+  if (!env) {
+    return NextResponse.redirect(`${origin}/login?error=supabase_config`);
+  }
+
+  const redirectTo = `${origin}/api/auth/callback?next=/onboarding`;
+  let cookiesToApply: CookieToSet[] = [];
+
+  const supabase = createServerClient(env.url, env.anonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookies) {
+        cookiesToApply = cookies;
+      },
+    },
+  });
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+    },
+  });
+
+  if (error || !data.url) {
+    return NextResponse.redirect(`${origin}/login?error=auth`);
+  }
+
+  const redirectResponse = NextResponse.redirect(data.url);
+  cookiesToApply.forEach(({ name, value, options }) => {
+    redirectResponse.cookies.set(name, value, options);
+  });
+
+  return redirectResponse;
+}

@@ -1,0 +1,129 @@
+Gazameel — سجل إعداد بوت التيليجرام
+التاريخ: 2026-09-07
+المشروع: /Users/ashraf/Projects/gazameel
+البوت: @gazameel_bot (Gazameel)
+ADMIN_TELEGRAM_CHAT_ID: 1147904847
+التوكن في السجل: مُقنَّع (8752…p2Jg)
+
+============================================================
+1) telegram:setup — نجح
+============================================================
+token: 8752…p2Jg
+action: setup
+bot: @gazameel_bot (Gazameel)
+updated .env.local: NEXT_PUBLIC_TELEGRAM_BOT_USERNAME
+commands: set
+
+============================================================
+2) npm run dev (sandbox) — فشل
+started: 2026-09-07T07:21:23Z  elapsed: 43034ms
+============================================================
+Unhandled Rejection: NodeError [SystemError]: A system error occurred:
+uv_interface_addresses returned Unknown system error 1
+    at Object.networkInterfaces (node:os:218:16)
+    at getNetworkHosts (.../next/dist/lib/get-network-host.js:18:36)
+    at getNetworkHost (.../next/dist/lib/get-network-host.js:40:19)
+    at Server.<anonymous> (.../next/dist/server/lib/start-server.js:288:84)
+  code: 'ERR_SYSTEM_ERROR'
+  syscall: 'uv_interface_addresses'
+exit: unknown
+
+============================================================
+3) npm run dev (صلاحيات كاملة) — فشل
+started: 2026-09-07T07:22:11Z  elapsed: 7293ms
+============================================================
+⚠ Port 3000 is in use by process 4531, using available port 3001 instead.
+▲ Next.js 16.3.2 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://172.102.1.96:3001
+- Environments: .env.local
+✓ Ready in 3.1s
+⚠ Attempted to load next-swc-fallback/@next/swc-darwin-x64/next-swc.darwin-x64.node, but it was not installed
+⚠ Attempted to load @next/swc-darwin-x64, but it was not installed
+⚠ Attempted to load @next/swc-wasm-nodejs, but it was not installed
+⚠ Attempted to load @next/swc-wasm-web, but it was not installed
+⨯ Failed to load SWC binary for darwin/x64
+  https://nextjs.org/docs/messages/failed-loading-swc
+⨯ Failed to load next.config.ts
+  https://nextjs.org/docs/messages/next-config-error
+Error: Failed to load SWC binary for darwin/x64
+exit: 1
+
+============================================================
+4) npm run telegram:poll — أُجهض (تعليق على deleteWebhook)
+started: 2026-09-07T07:22:24Z  elapsed: 116367ms
+============================================================
+token: 8752…p2Jg
+forward → http://localhost:3000/api/telegram/webhook
+(لا مخرجات بعد ذلك — العملية أُوقفت)
+exit: unknown
+
+============================================================
+5) npm run telegram:poll (إعادة) — أُجهض
+started: 2026-09-07T07:25:59Z  elapsed: 147498ms
+============================================================
+token: 8752…p2Jg
+forward → http://localhost:3000/api/telegram/webhook
+(لا مخرجات بعد ذلك — العملية أُوقفت)
+exit: unknown
+
+============================================================
+6) npm run dev على المنفذ 3000 — فشل SWC
+started: 2026-09-07T07:30:48Z  elapsed: 10638ms
+============================================================
+▲ Next.js 16.3.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.102.1.96:3000
+- Environments: .env.local
+✓ Ready in 2.3s
+⚠ Attempted to load @next/swc-darwin-x64, but it was not installed
+⨯ Failed to load SWC binary for darwin/x64
+⨯ Failed to load next.config.ts
+Error: Failed to load SWC binary for darwin/x64
+exit: 1
+
+============================================================
+7) انتظار رسالة تيليجرام وحفظ chat_id — نجح
+started: 2026-09-07T07:32:06Z  elapsed: 8586ms
+============================================================
+waiting for a Telegram message… open @gazameel_bot and send /start
+got chat_id=1147904847 text="/start"
+saved ADMIN_TELEGRAM_CHAT_ID and replied
+exit: 0
+
+============================================================
+8) طرفية المستخدم المحلية
+============================================================
+ashraf@Ashraf-MacBook-Air gazameel % npm run dev
+
+▲ Next.js 16.3.2 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.102.1.96:3000
+- Environments: .env.local
+✓ Ready in 4.4s
+⚠ Attempted to load @next/swc-darwin-x64, but it was not installed
+⨯ Failed to load SWC binary for darwin/x64
+⨯ Failed to load next.config.ts
+Error: Failed to load SWC binary for darwin/x64
+
+ashraf@Ashraf-MacBook-Air gazameel % npm run telegram:poll
+
+token: 8752…p2Jg
+forward → http://localhost:3000/api/telegram/webhook
+لا يمكن الوصول إلى http://localhost:3000 — شغّل npm run dev في طرفية أخرى.
+
+ashraf@Ashraf-MacBook-Air gazameel % node -p "process.arch"
+x64
+
+============================================================
+الخلاصة
+============================================================
+نجح:
+  - ربط TELEGRAM_BOT_TOKEN
+  - getMe → @gazameel_bot
+  - setMyCommands
+  - استلام /start وحفظ ADMIN_TELEGRAM_CHAT_ID=1147904847
+
+فشل / معلّق:
+  - npm run dev: ثنائي SWC غير مثبت لـ darwin/x64
+  - telegram:poll: لا يوجد سيرفر على :3000 لأن Next انهار بعد Ready

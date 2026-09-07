@@ -1,0 +1,48 @@
+{
+  "name": "gazameel",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "telegram:webhook": "node scripts/telegram-webhook.mjs",
+    "telegram:webhook:set": "node scripts/telegram-webhook.mjs set",
+    "telegram:webhook:info": "node scripts/telegram-webhook.mjs info",
+    "telegram:me": "node scripts/telegram-webhook.mjs me",
+    "telegram:commands": "node scripts/telegram-webhook.mjs commands",
+    "telegram:setup": "node scripts/telegram-webhook.mjs setup",
+    "telegram:poll": "node scripts/telegram-poll.mjs",
+    "check:setup": "node scripts/check-setup.mjs",
+    "check:auth": "node scripts/check-auth.mjs",
+    "check:phase2": "node scripts/check-phase2.mjs",
+    "seed": "node scripts/seed.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.1",
+    "grammy": "^1.45.1",
+    "next": "^16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.2",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vercel": "^59.11.7",
+    "ws": "^8.21.3"
+  },
+  "optionalDependencies": {
+    "@next/swc-darwin-x64": "^16.3.2"
+  }
+}

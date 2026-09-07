@@ -1,0 +1,39 @@
+-- ============================================================
+-- Gazameel — ملاحظات Storage (مرجع سريع)
+-- أنشئ الـ bucket من الواجهة؛ هذا الملف للتوثيق فقط.
+-- ============================================================
+--
+-- الخطوات في المتصفح:
+--   1. افتح https://supabase.com/dashboard → مشروعك
+--   2. من الشريط الجانبي: Storage
+--   3. New bucket
+--   4. Name: resources
+--   5. Public bucket: ❌ أطفئه (يجب أن يكون Private)
+--   6. Create bucket
+--
+-- إعدادات مقترحة (Bucket → Configuration):
+--   • File size limit: 15728640 (15 MB)
+--   • Allowed MIME types:
+--       application/pdf
+--       image/jpeg
+--       image/png
+--       image/webp
+--
+-- مسارات يكتبها التطبيق:
+--   pending/{userId}/{uuid}.pdf|jpg|...
+--   approved/{courseId}/{uuid}.pdf|...
+--
+-- لماذا Private؟
+--   ملفات pending لا يجب أن يراها أحد برابط دائم.
+--   بعد الاعتماد، الطالب ينزّل عبر Signed URL قصيرة العمر
+--   من المسار: GET /api/resources/[id]/download
+--
+-- سياسات SQL؟
+--   المرحلة 1 لا تحتاج سياسات storage.objects لأن كل الرفع/النقل/
+--   والحذف وSigned URL تتم عبر SUPABASE_SERVICE_ROLE_KEY من السيرفر.
+--   راجع storage-policies.sql للتوضيح فقط.
+--
+-- تحقق سريع بعد الإنشاء:
+--   Storage → resources → يجب أن ترى «Private»
+--   جرّب رفع أدمن من /admin بعد لصق المفاتيح
+--

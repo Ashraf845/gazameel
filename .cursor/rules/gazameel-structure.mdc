@@ -1,0 +1,37 @@
+---
+description: اتبع تقسيم Gazameel في PROJECT_STRUCTURE.md (features/shared + route groups) عند أي ميزة أو تعديل، وحدّث الملف عند إضافة أجزاء جديدة
+alwaysApply: true
+---
+
+# هيكل Gazameel للتوسع
+
+قبل أي ميزة أو تعديل هيكلي، **اقرأ** [`PROJECT_STRUCTURE.md`](../../PROJECT_STRUCTURE.md) واتبع الهيكل:
+
+| طبقة | أين تضع الكود |
+|------|----------------|
+| Feature logic / UI خاص | `src/features/<name>/` |
+| مشترك (nav، supabase، constants، types، courses) | `src/shared/` |
+| صفحات | `src/app/(<name>)/.../page.tsx` (route groups — الـ URL بلا أقواس) |
+| API رفيع | `src/app/api/(<name>)/.../route.ts` → يستدعي `features/` |
+| Database | `supabase/schema.sql` ثم `rls.sql` |
+| Automations | `src/features/automations/` + `api/(automations)/` + `scripts/` |
+
+## قواعد إلزامية
+
+1. **صفحات تعرض، API ينسّق، المنطق في `features/` أو `shared/`** — لا منطق أعمال ثقيل في `page.tsx`.
+2. لا تُعد إنشاء `src/lib/` أو `src/components/` — استُبدلا بـ `features/` و`shared/`.
+3. أعد استخدام الموجود (`moderation`, `files`, `auth`, `telegram`) بدل النسخ.
+4. جدول/مسار API/صفحة/أتمتة جديدة → اتبع القسم 9 في `PROJECT_STRUCTURE.md`.
+5. لا تضع أسرارًا في المستودع؛ أي متغير جديد في `.env.example` كقالب فقط.
+
+## تحديث الخريطة (إلزامي)
+
+إذا أضفت أو نقلت أيًا مما يلي، **حدّث `PROJECT_STRUCTURE.md` في نفس التغيير**:
+
+- مجلد تحت `src/features/` أو `src/shared/`
+- صفحة تحت `src/app/(*)/`
+- مسار تحت `src/app/api/(*)/`
+- جدول أو سياسة في `supabase/`
+- أتمتة أو متغير بيئة جوهري جديد
+
+حدّث الجداول والمسارات ذات الصلة فقط — لا تعيد كتابة الملف كاملًا بلا داعٍ.

@@ -1,0 +1,12 @@
+---
+description: ممنوع نص أبيض/فاتح على خلفية فاتحة — استخدم توكنات الثيم
+alwaysApply: true
+---
+
+# تباين الثيم (Gazameel)
+
+**اوعك تكتب نص بالابيض ع خلفية فاتحة لانها مشكلة.**
+
+عند أي UI: استخدم `var(--text-primary)` / `var(--text-secondary)` / `var(--border)` / `var(--accent-gold)` — لا `text-white/*` ولا ألوان الثيم الأخضر القديم. تحقق من الوضع الفاتح والداكن.
+
+التفاصيل: `.cursor/skills/theme-contrast/SKILL.md`
