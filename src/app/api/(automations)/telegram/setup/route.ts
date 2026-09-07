@@ -12,7 +12,7 @@ function safeEqualString(a: string, b: string): boolean {
 
 /**
  * GET /api/telegram/setup?secret=...
- * يربط setWebhook بعد التحقق من TELEGRAM_WEBHOOK_SECRET.
+ * يربط setWebhook بعد التحقق من TELEGRAM_WEBHOOK_SECRET (query فقط — ليس CRON_SECRET).
  */
 export async function GET(request: Request) {
   const expected = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
@@ -29,8 +29,27 @@ export async function GET(request: Request) {
     );
   }
 
-  if (isMissingOrPlaceholder(expected) || !got || !safeEqualString(got, expected!)) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  // سرّ السيرفر غير مضبوط على بيئة النشر (غالبًا Vercel Production)
+  if (isMissingOrPlaceholder(expected)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "secret_not_configured",
+        hint: "أضف TELEGRAM_WEBHOOK_SECRET في Vercel → Settings → Environment Variables (Production) ثم Redeploy",
+      },
+      { status: 503 }
+    );
+  }
+
+  if (!got || !safeEqualString(got, expected)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "unauthorized",
+        hint: "قيمة ?secret= لا تطابق TELEGRAM_WEBHOOK_SECRET على السيرفر (تأكد من Production وليس Preview)",
+      },
+      { status: 401 }
+    );
   }
 
   if (!getBot()) {
