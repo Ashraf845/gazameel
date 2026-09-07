@@ -45,6 +45,24 @@ export function SupabaseSetupNotice({
 
 /** شريط خفيف أعلى الصفحة عند غياب الإعداد */
 export function SupabaseSetupBanner() {
+  const isPreview =
+    process.env.VERCEL_ENV === "preview" ||
+    process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+
+  if (isPreview) {
+    return (
+      <div className="border-b border-[var(--warn)]/30 bg-[color-mix(in_srgb,var(--warn)_12%,transparent)] px-4 py-3 text-center text-sm text-[var(--warn)]">
+        هذا رابط <strong>Preview</strong> بدون مفاتيح قاعدة البيانات. افتح الإنتاج:{" "}
+        <a
+          href="https://gazameel-ashraf845.vercel.app"
+          className="underline text-[var(--text-primary)]"
+        >
+          gazameel-ashraf845.vercel.app
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="border-b border-[var(--warn)]/30 bg-[color-mix(in_srgb,var(--warn)_12%,transparent)] px-4 py-3 text-center text-sm text-[var(--warn)]">
       مفاتيح Supabase ناقصة — على Vercel أضف{" "}
