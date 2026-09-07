@@ -56,7 +56,7 @@ if (!Object.keys(env).length) {
 }
 
 // على Vercel لازم رابط الإنتاج مش localhost
-env.NEXT_PUBLIC_APP_URL = "https://gazameel-ashraf845.vercel.app";
+env.NEXT_PUBLIC_APP_URL = "https://gazameel.vercel.app";
 
 const who = run("npx", ["vercel", "whoami"]);
 if ((who.stderr || who.stdout || "").includes("Logged out") || who.status !== 0) {

@@ -54,10 +54,10 @@ export function SupabaseSetupBanner() {
       <div className="border-b border-[var(--warn)]/30 bg-[color-mix(in_srgb,var(--warn)_12%,transparent)] px-4 py-3 text-center text-sm text-[var(--warn)]">
         هذا رابط <strong>Preview</strong> بدون مفاتيح قاعدة البيانات. افتح الإنتاج:{" "}
         <a
-          href="https://gazameel-ashraf845.vercel.app"
+          href="https://gazameel.vercel.app"
           className="underline text-[var(--text-primary)]"
         >
-          gazameel-ashraf845.vercel.app
+          gazameel.vercel.app
         </a>
       </div>
     );
