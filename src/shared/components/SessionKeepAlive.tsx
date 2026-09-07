@@ -15,16 +15,15 @@ export function SessionKeepAlive() {
     void supabase.auth.startAutoRefresh();
     void supabase.auth.getSession();
 
-    function onVisible() {
-      if (document.visibilityState === "visible") {
-        void supabase.auth.getSession();
-      }
-    }
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      createClient()?.auth.getSession();
+    };
 
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
-      void supabase.auth.stopAutoRefresh();
+      createClient()?.auth.stopAutoRefresh();
     };
   }, []);
 
