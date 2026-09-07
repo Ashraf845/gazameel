@@ -19,6 +19,33 @@ export type CookieToSet = {
   options?: Record<string, unknown>;
 };
 
+/** مدة كوكي الجلسة (~400 يوم) — يبقى الدخول بعد إغلاق المتصفح */
+export const AUTH_COOKIE_MAX_AGE = 400 * 24 * 60 * 60;
+
+export const AUTH_COOKIE_OPTIONS = {
+  path: "/",
+  sameSite: "lax" as const,
+  httpOnly: false,
+  maxAge: AUTH_COOKIE_MAX_AGE,
+  secure: process.env.NODE_ENV === "production",
+};
+
+/** يضمن maxAge طويل حتى لا يصير الكوكي session-only ويُحذف عند إغلاق المتصفح */
+export function withPersistentCookieOptions(
+  options?: Record<string, unknown> | null
+): Record<string, unknown> {
+  return {
+    ...AUTH_COOKIE_OPTIONS,
+    ...(options ?? {}),
+    path: (options?.path as string) || AUTH_COOKIE_OPTIONS.path,
+    sameSite: (options?.sameSite as string) || AUTH_COOKIE_OPTIONS.sameSite,
+    maxAge:
+      typeof options?.maxAge === "number" && options.maxAge > 0
+        ? options.maxAge
+        : AUTH_COOKIE_MAX_AGE,
+  };
+}
+
 export function isMissingOrPlaceholder(value: string | undefined | null): boolean {
   if (value == null) return true;
   const v = String(value).trim();

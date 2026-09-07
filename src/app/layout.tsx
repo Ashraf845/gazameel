@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/shared/components/Navbar";
 import { Footer } from "@/shared/components/Footer";
 import { WelcomeBanner } from "@/shared/components/WelcomeBanner";
+import { SessionKeepAlive } from "@/shared/components/SessionKeepAlive";
 import { BRAND, TAGLINE_EN } from "@/shared/lib/constants";
 
 /**
@@ -39,6 +40,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <Navbar />
+        <SessionKeepAlive />
         <WelcomeBanner />
         <main className="flex-1">{children}</main>
         <Footer />

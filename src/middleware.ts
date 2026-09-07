@@ -1,9 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import type { CookieToSet } from "@/shared/lib/supabase/config";
+import {
+  AUTH_COOKIE_OPTIONS,
+  type CookieToSet,
+  withPersistentCookieOptions,
+} from "@/shared/lib/supabase/config";
 
 /**
- * يحدّث كوكيز جلسة Supabase في كل طلب حتى تعمل صفحات السيرفر بعد Google OAuth.
+ * يحدّث كوكيز جلسة Supabase في كل طلب (تجديد التوكن) حتى تبقى الجلسة بعد إغلاق المتصفح.
  */
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -23,26 +27,36 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(url, anon, {
+    cookieOptions: AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet: CookieToSet[]) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options)
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value)
         );
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(
+            name,
+            value,
+            withPersistentCookieOptions(options) as Parameters<
+              typeof response.cookies.set
+            >[2]
+          );
+        });
       },
     },
   });
 
-  await Promise.race([
-    supabase.auth.getUser(),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("supabase_auth_timeout")), 2500)
-    ),
-  ]).catch(() => null);
+  // لازم ينتظر getUser لتجديد الـ refresh token — بدون timeout قصير يقطع الجلسة
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    /* الشبكة / Supabase — نكمّل الطلب بنفس الكوكيز */
+  }
+
   return response;
 }
 

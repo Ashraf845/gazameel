@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabasePublicEnv, type CookieToSet } from "@/shared/lib/supabase/config";
+import { getSupabasePublicEnv, type CookieToSet, withPersistentCookieOptions, AUTH_COOKIE_OPTIONS } from "@/shared/lib/supabase/config";
 
 /** PKCE — يبدأ OAuth ويحفظ code_verifier في cookie → يرجع لـ /api/auth/callback */
 export async function GET(request: NextRequest) {
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   let cookiesToApply: CookieToSet[] = [];
 
   const supabase = createServerClient(env.url, env.anonKey, {
+    cookieOptions: AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -39,7 +40,13 @@ export async function GET(request: NextRequest) {
 
   const redirectResponse = NextResponse.redirect(data.url);
   cookiesToApply.forEach(({ name, value, options }) => {
-    redirectResponse.cookies.set(name, value, options);
+    redirectResponse.cookies.set(
+      name,
+      value,
+      withPersistentCookieOptions(options) as Parameters<
+        typeof redirectResponse.cookies.set
+      >[2]
+    );
   });
 
   return redirectResponse;

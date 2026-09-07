@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabasePublicEnv, type CookieToSet } from "@/shared/lib/supabase/config";
+import { getSupabasePublicEnv, type CookieToSet, withPersistentCookieOptions, AUTH_COOKIE_OPTIONS } from "@/shared/lib/supabase/config";
 import { exchangePkceCode, getCodeVerifierFromRequest } from "@/shared/lib/supabase/pkce-exchange";
 
 export async function GET(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   if (!verifier) {
     return NextResponse.redirect(
       `${origin}/login?error=exchange&detail=${encodeURIComponent(
-        "انتهت جلسة الدخول — امسح cookies لـ localhost ثم جرّب من جديد بنفس المتصفح"
+        "انتهت جلسة الدخول — تأكد أنك تكمل من نفس المتصفح، ثم جرّب من جديد"
       )}`
     );
   }
@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
   let sessionCookies: CookieToSet[] = [];
 
   const supabase = createServerClient(env.url, env.anonKey, {
+    cookieOptions: AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -68,7 +69,13 @@ export async function GET(request: NextRequest) {
 
   const redirectResponse = NextResponse.redirect(`${origin}${next}`);
   sessionCookies.forEach(({ name, value, options }) => {
-    redirectResponse.cookies.set(name, value, options);
+    redirectResponse.cookies.set(
+      name,
+      value,
+      withPersistentCookieOptions(options) as Parameters<
+        typeof redirectResponse.cookies.set
+      >[2]
+    );
   });
 
   return redirectResponse;
