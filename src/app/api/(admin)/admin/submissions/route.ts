@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin, getProfile } from "@/features/auth/auth";
 import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supabase/admin";
 import { reviewResource, createSignedUrl } from "@/features/moderation/moderation";
+import { notifySubmitterReviewDecision } from "@/features/automations/telegram";
 
 export async function GET() {
   try {
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
+    await notifySubmitterReviewDecision(id, action, reason);
     return NextResponse.json({ ok: true, status: result.resource?.status });
   } catch (e) {
     if (e instanceof Response) return e;

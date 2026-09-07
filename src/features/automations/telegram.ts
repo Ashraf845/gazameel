@@ -194,6 +194,60 @@ export async function notifyAdminNewSubmission(resourceId: string) {
   }
 }
 
+/** إشعار صاحب المساهمة بنتيجة المراجعة إذا كان حسابه مربوطًا بتيليجرام. */
+export async function notifySubmitterReviewDecision(
+  resourceId: string,
+  action: "approve" | "reject",
+  reason?: string
+) {
+  const bot = getBot();
+  const admin = createAdminClient();
+  if (!bot || !admin) return;
+
+  const { data: resource, error } = await admin
+    .from("resources")
+    .select(
+      "title, rejection_reason, courses(name_ar), profiles:uploaded_by(telegram_chat_id)"
+    )
+    .eq("id", resourceId)
+    .maybeSingle();
+
+  if (error || !resource) {
+    console.error("notifySubmitterReviewDecision", error);
+    return;
+  }
+
+  const uploader = resource.profiles as {
+    telegram_chat_id?: string | null;
+  } | null;
+  const chatId = uploader?.telegram_chat_id;
+  if (!chatId) return;
+
+  const courseName =
+    (resource.courses as { name_ar?: string } | null)?.name_ar ?? "المادة";
+  const lines =
+    action === "approve"
+      ? [
+          "تم قبول ملفك ✅",
+          `العنوان: ${resource.title}`,
+          `المادة: ${courseName}`,
+          "صار الملف ظاهرًا في مكتبة Gazameel. شكرًا لمساهمتك!",
+        ]
+      : [
+          "تم رفض ملفك ❌",
+          `العنوان: ${resource.title}`,
+          `المادة: ${courseName}`,
+          `السبب: ${reason?.trim() || resource.rejection_reason || "لم يُذكر سبب"}`,
+          "يمكنك مراجعة مساهماتك ورفع نسخة معدّلة.",
+        ];
+
+  try {
+    await bot.api.sendMessage(chatId, lines.join("\n"));
+  } catch (sendError) {
+    console.error("notifySubmitterReviewDecision", sendError);
+  }
+}
+
 export async function handleTelegramUpdate(update: {
   callback_query?: {
     id: string;
@@ -247,6 +301,11 @@ export async function handleTelegramUpdate(update: {
     });
     return;
   }
+
+  await notifySubmitterReviewDecision(
+    resourceId,
+    action as "approve" | "reject"
+  );
 
   const label =
     action === "approve"
