@@ -31,6 +31,11 @@ export async function GET(request: NextRequest) {
     options: {
       redirectTo,
       skipBrowserRedirect: true,
+      queryParams: {
+        // تسجيل الخروج من Gazameel لا يُخرج المستخدم من Google نفسه.
+        // اطلب اختيار الحساب حتى لا يعيد Google استخدام آخر حساب تلقائيًا.
+        prompt: "select_account",
+      },
     },
   });
 
