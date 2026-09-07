@@ -47,9 +47,11 @@ export function SupabaseSetupNotice({
 export function SupabaseSetupBanner() {
   return (
     <div className="border-b border-[var(--warn)]/30 bg-[color-mix(in_srgb,var(--warn)_12%,transparent)] px-4 py-3 text-center text-sm text-[var(--warn)]">
-      معاينة بدون قاعدة بيانات — الصق مفاتيح Supabase في{" "}
-      <code className="text-[var(--text-primary)]">.env.local</code> واتبع{" "}
-      <code className="text-[var(--text-primary)]">docs/درس-المرحلة-1.md</code>
+      مفاتيح Supabase ناقصة — على Vercel أضف{" "}
+      <code className="text-[var(--text-primary)]">NEXT_PUBLIC_SUPABASE_URL</code> و{" "}
+      <code className="text-[var(--text-primary)]">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{" "}
+      كـ Config ثم Redeploy. محليًا راجع{" "}
+      <code className="text-[var(--text-primary)]">.env.local</code>.
     </div>
   );
 }

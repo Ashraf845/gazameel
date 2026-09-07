@@ -1,22 +1,24 @@
 import Link from "next/link";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import { isSupabaseFullyConfigured } from "@/shared/lib/supabase/config";
+import { createClient } from "@/shared/lib/supabase/server";
+import { isSupabaseConfigured } from "@/shared/lib/supabase/config";
 import { COURSES, COURSE_TYPE_LABELS, SEMESTER_LABEL_AR } from "@/shared/lib/courses";
 import { SupabaseSetupBanner } from "@/shared/components/SupabaseSetupNotice";
 
 export const dynamic = "force-dynamic";
 
 export default async function HubPage() {
-  const configured = isSupabaseFullyConfigured();
+  const configured = isSupabaseConfigured();
   let counts: Record<string, number> = {};
 
   if (configured) {
     try {
       const admin = createAdminClient();
-      if (admin) {
-        const { data: courses } = await admin.from("courses").select("id, code");
+      const supabase = admin ?? (await createClient());
+      if (supabase) {
+        const { data: courses } = await supabase.from("courses").select("id, code");
         for (const c of courses || []) {
-          const { count } = await admin
+          const { count } = await supabase
             .from("resources")
             .select("*", { count: "exact", head: true })
             .eq("course_id", c.id)

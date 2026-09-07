@@ -17,6 +17,7 @@
     "telegram:commands": "node scripts/telegram-webhook.mjs commands",
     "telegram:setup": "node scripts/telegram-webhook.mjs setup",
     "telegram:poll": "node scripts/telegram-poll.mjs",
+    "vercel:sync-env": "node scripts/sync-vercel-env.mjs",
     "check:setup": "node scripts/check-setup.mjs",
     "check:auth": "node scripts/check-auth.mjs",
     "check:phase2": "node scripts/check-phase2.mjs",

@@ -3,14 +3,14 @@
  */
 import Link from "next/link";
 import { BRAND, TAGLINE_AR, TAGLINE_EN } from "@/shared/lib/constants";
-import { isSupabaseFullyConfigured } from "@/shared/lib/supabase/config";
+import { isSupabaseConfigured } from "@/shared/lib/supabase/config";
 import { SupabaseSetupBanner } from "@/shared/components/SupabaseSetupNotice";
 import { getSessionUser } from "@/features/auth/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const configured = isSupabaseFullyConfigured();
+  const configured = isSupabaseConfigured();
   const user = configured ? await getSessionUser() : null;
 
   return (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
-import { isSupabaseFullyConfigured } from "@/shared/lib/supabase/config";
+import { createClient } from "@/shared/lib/supabase/server";
+import { isSupabaseConfigured } from "@/shared/lib/supabase/config";
 import { DownloadButton } from "@/features/hub/components/DownloadButton";
 import { COURSES } from "@/shared/lib/courses";
 import { SupabaseSetupBanner } from "@/shared/components/SupabaseSetupNotice";
@@ -13,7 +14,7 @@ export default async function CourseHubPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const configured = isSupabaseFullyConfigured();
+  const configured = isSupabaseConfigured();
   const local = COURSES.find((c) => c.code === code);
   let courseName = local?.name_ar || code;
   let resources: {
@@ -28,15 +29,16 @@ export default async function CourseHubPage({
   if (configured) {
     try {
       const admin = createAdminClient();
-      if (admin) {
-        const { data: course } = await admin
+      const supabase = admin ?? (await createClient());
+      if (supabase) {
+        const { data: course } = await supabase
           .from("courses")
           .select("id, name_ar")
           .eq("code", code)
           .maybeSingle();
         if (course) {
           courseName = course.name_ar;
-          const { data } = await admin
+          const { data } = await supabase
             .from("resources")
             .select(
               "id, title, resource_type, contributor_display_name, external_url, created_at"
