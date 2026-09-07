@@ -22,6 +22,55 @@ export function getAdminChatId() {
   return id;
 }
 
+const BOT_COMMANDS = [
+  { command: "start", description: "بدء الربط والترحيب" },
+  { command: "help", description: "قائمة الأوامر" },
+  { command: "countdown", description: "العد التنازلي للمواعيد" },
+  { command: "daily", description: "سؤال اليوم" },
+  { command: "whoami", description: "عرض رقم المحادثة chat_id" },
+];
+
+/** يربط Webhook تيليجرام بعنوان الإنتاج (setWebhook + أوامر البوت) */
+export async function registerProductionWebhook(): Promise<
+  | { ok: true; url: string; bot: string }
+  | { ok: false; error: string }
+> {
+  const bot = getBot();
+  if (!bot) return { ok: false, error: "telegram_bot_not_configured" };
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  if (
+    !appUrl ||
+    appUrl.includes("localhost") ||
+    appUrl.includes("127.0.0.1") ||
+    !appUrl.startsWith("https://")
+  ) {
+    return { ok: false, error: "need_https_app_url" };
+  }
+
+  let origin: string;
+  try {
+    origin = new URL(appUrl).origin;
+  } catch {
+    return { ok: false, error: "invalid_app_url" };
+  }
+
+  const webhookUrl = `${origin}/api/telegram/webhook`;
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  try {
+    await bot.api.setWebhook(webhookUrl, {
+      secret_token: isMissingOrPlaceholder(secret) ? undefined : secret,
+      allowed_updates: ["message", "callback_query"],
+    });
+    await bot.api.setMyCommands(BOT_COMMANDS);
+    const me = await bot.api.getMe();
+    return { ok: true, url: webhookUrl, bot: me.username || "" };
+  } catch (e) {
+    console.error("registerProductionWebhook", e);
+    return { ok: false, error: "telegram_api_failed" };
+  }
+}
+
 /**
  * توكن لمرة واحدة لربط تيليجرام — لا نضع user UUID في الرابط.
  * يُنشأ من صفحة /telegram (سيرفر) ويُستهلك عند /start link_<token>.

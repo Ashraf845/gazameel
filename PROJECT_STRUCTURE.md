@@ -105,7 +105,7 @@ gazameel/
 | استطلاعات | `/api/polls` | polls / poll_votes |
 | Onboarding | `/api/onboarding` | profiles, student_courses |
 | Auth | `/api/auth/google`, `/callback`, `/signout` | `features/auth`, `shared/lib/supabase` |
-| تيليجرام | `/api/telegram/webhook` | `features/automations/telegram` |
+| تيليجرام | `/api/telegram/webhook`، `/api/telegram/setup` | `features/automations/telegram` |
 | Cron | `/api/cron/reminders` | `sendExamReminders` |
 
 ### قواعد الـ API
@@ -176,6 +176,7 @@ gazameel/
 | الآلية | أين | حماية |
 |--------|-----|--------|
 | Webhook تيليجرام | `api/(automations)/telegram/webhook` → `handleTelegramUpdate` | `TELEGRAM_WEBHOOK_SECRET` |
+| ربط Webhook | `api/(automations)/telegram/setup?secret=` → `registerProductionWebhook` | نفس سرّ الـ webhook |
 | إشعار رفع جديد | `notifyAdminNewSubmission` من `api/(upload)/upload` | توكن + chat id الأدمن |
 | موافقة/رفض من البوت | callback `approve:` / `reject:` | `ADMIN_TELEGRAM_CHAT_ID` |
 | أوامر البوت | `/start` `/help` `/countdown` `/daily` `/whoami` في `features/automations/telegram.ts` | — |
