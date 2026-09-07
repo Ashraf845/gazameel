@@ -2,8 +2,24 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { COURSES, RESOURCE_TYPES } from "@/shared/lib/courses";
+import { DashboardPanel } from "@/features/admin/components/DashboardPanel";
+import { UsersMailPanel } from "@/features/admin/components/UsersMailPanel";
+import { NotificationsPanel } from "@/features/admin/components/NotificationsPanel";
+import type {
+  AdminMessageRow,
+  AdminUserRow,
+  DashboardStats,
+} from "@/features/admin/dashboard";
 
-type Tab = "queue" | "upload" | "exams" | "questions" | "polls";
+type Tab =
+  | "dash"
+  | "mail"
+  | "notify"
+  | "queue"
+  | "upload"
+  | "exams"
+  | "questions"
+  | "polls";
 
 type PendingItem = {
   id: string;
@@ -16,10 +32,24 @@ type PendingItem = {
 };
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<Tab>("queue");
+  const [tab, setTab] = useState<Tab>("dash");
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   const [configHint, setConfigHint] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [messages, setMessages] = useState<AdminMessageRow[]>([]);
+  const [contactEmail, setContactEmail] = useState("");
+
+  const loadDashboard = useCallback(async () => {
+    const res = await fetch("/api/admin/dashboard");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return;
+    setStats(data.stats || null);
+    setUsers(data.users || []);
+    setMessages(data.messages || []);
+    setContactEmail(data.contact_email || "");
+  }, []);
 
   useEffect(() => {
     fetch("/api/admin/submissions", { method: "PUT" })
@@ -33,9 +63,10 @@ export default function AdminPage() {
           return;
         }
         setIsAdmin(!!d.is_admin);
+        if (d.is_admin) void loadDashboard();
       })
       .catch(() => setIsAdmin(false));
-  }, []);
+  }, [loadDashboard]);
 
   if (isAdmin === null) {
     return (
@@ -57,10 +88,10 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">لوحة الأدمن</h1>
+    <div className="mx-auto max-w-6xl px-4 py-12">
+      <h1 className="text-3xl font-bold mb-2">لوحة التحكم</h1>
       <p className="text-[var(--text-secondary)] mb-6 text-sm">
-        موافقة المساهمات، رفع مباشر، مواعيد، أسئلة، واستطلاعات.
+        إحصائيات المستخدمين، البريد، الإشعارات، ومراجعة المساهمات.
       </p>
       {configHint && (
         <p className="mb-4 text-sm text-[var(--warn)] leading-relaxed">{configHint}</p>
@@ -69,6 +100,9 @@ export default function AdminPage() {
       <div className="mb-6 flex flex-wrap gap-2">
         {(
           [
+            ["dash", "الإحصائيات"],
+            ["mail", "البريد"],
+            ["notify", "الإشعارات"],
             ["queue", "طابور المساهمات"],
             ["upload", "رفع مباشر"],
             ["exams", "مواعيد"],
@@ -91,6 +125,17 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {tab === "dash" && <DashboardPanel stats={stats} users={users} />}
+      {tab === "mail" && (
+        <UsersMailPanel
+          users={users}
+          contactEmail={contactEmail}
+          onSent={loadDashboard}
+        />
+      )}
+      {tab === "notify" && (
+        <NotificationsPanel messages={messages} onSent={loadDashboard} />
+      )}
       {tab === "queue" && <QueuePanel dbReady={!configHint} />}
       {tab === "upload" && <DirectUploadPanel />}
       {tab === "exams" && <ExamsPanel />}
@@ -126,7 +171,10 @@ function QueuePanel({ dbReady }: { dbReady: boolean }) {
   }, [dbReady]);
 
   useEffect(() => {
-    load();
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
   async function review(id: string, action: "approve" | "reject") {

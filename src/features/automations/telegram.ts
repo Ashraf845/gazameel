@@ -627,3 +627,28 @@ export async function sendExamReminders() {
 
   return { sent };
 }
+
+/** بث نص للطلاب المربوطين بتيليجرام (من لوحة الأدمن) */
+export async function broadcastTelegramToChats(
+  chatIds: string[],
+  text: string
+): Promise<{ sent: number; failed: number }> {
+  const bot = getBot();
+  if (!bot || !text.trim()) return { sent: 0, failed: 0 };
+
+  const body = text.trim().slice(0, 3500);
+  let sent = 0;
+  let failed = 0;
+  const unique = [...new Set(chatIds.filter(Boolean))];
+
+  for (const chatId of unique) {
+    try {
+      await bot.api.sendMessage(chatId, body);
+      sent++;
+    } catch {
+      failed++;
+    }
+  }
+
+  return { sent, failed };
+}

@@ -210,6 +210,9 @@ export function AuthNav() {
             <MenuLink href="/my-submissions" onNavigate={() => setOpen(false)}>
               مساهماتي
             </MenuLink>
+            <MenuLink href="/inbox" onNavigate={() => setOpen(false)}>
+              صندوق الرسائل
+            </MenuLink>
             <MenuLink href="/telegram" onNavigate={() => setOpen(false)}>
               {profile?.telegram_chat_id ? "تيليجرام (مرتبط)" : "ربط تيليجرام"}
             </MenuLink>

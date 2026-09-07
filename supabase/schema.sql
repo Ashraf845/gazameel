@@ -209,6 +209,41 @@ create index if not exists telegram_link_tokens_user_id_idx
 create index if not exists telegram_link_tokens_expires_idx
   on public.telegram_link_tokens (expires_at);
 
+-- رسائل الأدمن: بريد + إشعارات (سجل لوحة التحكم)
+create table if not exists public.admin_messages (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null check (kind in ('email', 'notification')),
+  title text not null,
+  body text not null,
+  audience text not null default 'all'
+    check (audience in ('all', 'onboarded', 'telegram')),
+  show_on_home boolean default false,
+  sent_via_telegram boolean default false,
+  telegram_sent int default 0,
+  email_sent int default 0,
+  email_failed int default 0,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz default now()
+);
+
+alter table public.admin_messages
+  add column if not exists email_sent int default 0;
+alter table public.admin_messages
+  add column if not exists email_failed int default 0;
+
+create index if not exists admin_messages_created_idx
+  on public.admin_messages (created_at desc);
+
+create table if not exists public.user_message_reads (
+  message_id uuid references public.admin_messages(id) on delete cascade,
+  user_id uuid references public.profiles(id) on delete cascade,
+  read_at timestamptz default now(),
+  primary key (message_id, user_id)
+);
+
+create index if not exists user_message_reads_user_idx
+  on public.user_message_reads (user_id, read_at desc);
+
 -- ------------------------------------------------------------
 -- بذرة مواد الفصل: المستوى الثاني — الفصل الأول (18 ساعة)
 -- ------------------------------------------------------------
@@ -264,5 +299,7 @@ alter table public.polls enable row level security;
 alter table public.poll_votes enable row level security;
 alter table public.reminder_log enable row level security;
 alter table public.telegram_link_tokens enable row level security;
+alter table public.admin_messages enable row level security;
+alter table public.user_message_reads enable row level security;
 
 -- انتهى schema.sql — نفّذ الآن supabase/rls.sql

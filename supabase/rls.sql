@@ -23,6 +23,8 @@ alter table public.polls enable row level security;
 alter table public.poll_votes enable row level security;
 alter table public.reminder_log enable row level security;
 alter table public.telegram_link_tokens enable row level security;
+alter table public.admin_messages enable row level security;
+alter table public.user_message_reads enable row level security;
 
 -- إزالة سياسات قديمة بنفس الأسماء (آمن للتكرار)
 drop policy if exists "courses_read" on public.courses;
@@ -44,6 +46,9 @@ drop policy if exists "polls_read" on public.polls;
 drop policy if exists "poll_votes_own" on public.poll_votes;
 drop policy if exists "poll_votes_read_own" on public.poll_votes;
 drop policy if exists "poll_votes_insert_own" on public.poll_votes;
+drop policy if exists "admin_messages_read_audience" on public.admin_messages;
+drop policy if exists "user_message_reads_select_own" on public.user_message_reads;
+drop policy if exists "user_message_reads_insert_own" on public.user_message_reads;
 
 -- المواد: الجميع يقرأ قائمة الفصل
 create policy "courses_read_all" on public.courses
@@ -148,6 +153,36 @@ create trigger trg_protect_profile_admin
 
 -- telegram_link_tokens: بدون سياسات للـ authenticated —
 -- الوصول فقط عبر service_role من السيرفر (إنشاء/استهلاك التوكن)
+
+alter table public.admin_messages enable row level security;
+create policy "admin_messages_read_audience" on public.admin_messages
+  for select using (
+    auth.uid() is not null
+    and kind = 'notification'
+    and (
+      audience = 'all'
+      or (
+        audience = 'onboarded'
+        and exists (
+          select 1 from public.profiles p
+          where p.id = auth.uid() and p.onboarding_done = true
+        )
+      )
+      or (
+        audience = 'telegram'
+        and exists (
+          select 1 from public.profiles p
+          where p.id = auth.uid() and p.telegram_chat_id is not null
+        )
+      )
+    )
+  );
+
+create policy "user_message_reads_select_own" on public.user_message_reads
+  for select using (auth.uid() = user_id);
+
+create policy "user_message_reads_insert_own" on public.user_message_reads
+  for insert with check (auth.uid() = user_id);
 
 -- ============================================================
 -- ملاحظة Storage (ليست SQL):

@@ -55,8 +55,8 @@ gazameel/
 | `moderation` | `moderation.ts` | — (يُستدعى من admin + telegram) | عبر `(admin)/admin/review|submissions` |
 | `quiz` | جاهز للمنطق/مكوّنات | `(quiz)/quiz`, `progress` | `(quiz)/quiz/*`, `(quiz)/admin/questions` |
 | `calendar` | جاهز للمنطق | `(calendar)/calendar` | `(calendar)/admin/exams` |
-| `admin` | جاهز للمنطق/مكوّنات لوحة | `(admin)/admin` | `(admin)/admin/review|submissions|resources` |
-| `community` | جاهز للمنطق/مكوّنات | `(community)/polls|contributors|about|telegram` | `(community)/polls` |
+| `admin` | `dashboard.ts`, `email.ts` + مكوّنات الإحصائيات/البريد/الإشعارات | `(admin)/admin` | `(admin)/admin/review|submissions|resources|dashboard|messages` |
+| `community` | صندوق الرسائل + صفحات المجتمع | `(community)/polls|contributors|about|telegram|inbox` | `(community)/polls|messages` |
 | `automations` | `telegram.ts` | — | `(automations)/telegram/webhook`, `cron/reminders` |
 | — | — | `(home)/page.tsx` → `/` | — |
 
@@ -100,6 +100,8 @@ gazameel/
 | المجال | المسارات العامة | المنطق |
 |--------|-----------------|--------|
 | رفع ومراجعة | `/api/upload`, `/api/admin/review`, `/api/admin/submissions`, `/api/admin/resources`, `/api/resources/[id]/download` | `features/upload`, `features/moderation` |
+| لوحة التحكم | `/api/admin/dashboard`, `/api/admin/messages` | `features/admin/dashboard` |
+| صندوق المستخدم | `/api/messages` | `features/community/messages` |
 | كويز | `/api/quiz/start`, `/api/quiz/submit`, `/api/admin/questions` | جداول questions / quiz_attempts |
 | مواعيد | `/api/admin/exams` | `exam_events` |
 | استطلاعات | `/api/polls` | polls / poll_votes |
@@ -127,6 +129,7 @@ gazameel/
 | `storage-policies.sql` | صلاحيات الـ bucket |
 | `STORAGE.md` | توثيق مسارات الملفات |
 | `telegram_link_tokens.sql` | ترقية idempotent لجدول ربط تيليجرام (قواعد قديمة) |
+| `admin_dashboard.sql` | ترقية سجل الإعلانات وصندوق رسائل المستخدمين |
 
 ### الجداول الأساسية
 
@@ -142,6 +145,8 @@ gazameel/
 | `polls` / `poll_votes` | الاستطلاعات |
 | `reminder_log` | منع تكرار تذكير نفس النافذة |
 | `telegram_link_tokens` | توكن لمرة واحدة لربط تيليجرام (بدل UUID في الرابط) |
+| `admin_messages` | سجل بريد وإشعارات لوحة التحكم |
+| `user_message_reads` | تتبّع الرسائل المقروءة لكل مستخدم |
 
 ### قواعد قاعدة البيانات
 
@@ -180,6 +185,8 @@ gazameel/
 | إشعار رفع جديد | `notifyAdminNewSubmission` من `api/(upload)/upload` | توكن + chat id الأدمن |
 | موافقة/رفض من البوت | callback `approve:` / `reject:` | `ADMIN_TELEGRAM_CHAT_ID` |
 | أوامر البوت | `/start` `/help` `/countdown` `/daily` `/whoami` في `features/automations/telegram.ts` | — |
+| بث إشعار للطلاب | `broadcastTelegramToChats` من لوحة الأدمن | توكن البوت |
+| بث بريد للطلاب | `features/admin/email.ts` عبر Resend Batch API | `RESEND_API_KEY` + `BROADCAST_EMAIL_FROM` |
 | تذكيرات | `api/(automations)/cron/reminders` + `vercel.json` | `Bearer CRON_SECRET` |
 | إدارة Webhook | `scripts/telegram-webhook.mjs` (`set` / `setup` / `commands`) | يقرأ `.env.local` |
 | تشغيل محلي | `scripts/telegram-poll.mjs` → `npm run telegram:poll` | getUpdates ثم POST للـ webhook المحلي |
