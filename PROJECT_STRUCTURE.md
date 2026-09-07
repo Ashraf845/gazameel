@@ -68,8 +68,8 @@ gazameel/
 
 ### مكوّنات مشتركة (`shared/components`)
 
-- `Navbar.tsx` / `SiteNav.tsx` / `AuthNav.tsx` — تنقّل وجلسة
-- `Footer.tsx`, `WelcomeBanner.tsx`, `ThemeToggle.tsx`
+- `Navbar.tsx` / `SiteNav.tsx` / `AuthNav.tsx` — تنقّل + قائمة بروفايل (صورة → حسابي)
+- `Footer.tsx`, `WelcomeBanner.tsx`, `SessionKeepAlive.tsx`, `ThemeToggle.tsx`
 - `SupabaseSetupNotice.tsx` — تنبيه عند غياب الإعداد
 
 ### مكتبات مشتركة (`shared/lib`)

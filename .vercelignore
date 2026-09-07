@@ -1,0 +1,10 @@
+# لا ترفع أرشيفات وملفات بناء مع CLI (كانت ~458MB)
+.next
+.next-cssfix
+.next-run
+.next-verify
+.cursor-tmp
+*.zip
+*.log
+node_modules
+gazameel-telegram.log
