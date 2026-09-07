@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   }
 
   // سرّ السيرفر غير مضبوط على بيئة النشر (غالبًا Vercel Production)
-  if (isMissingOrPlaceholder(expected)) {
+  if (isMissingOrPlaceholder(expected) || !expected) {
     return NextResponse.json(
       {
         ok: false,
@@ -41,7 +41,9 @@ export async function GET(request: Request) {
     );
   }
 
-  if (!got || !safeEqualString(got, expected)) {
+  const configuredSecret = expected;
+
+  if (!got || !safeEqualString(got, configuredSecret)) {
     return NextResponse.json(
       {
         ok: false,
