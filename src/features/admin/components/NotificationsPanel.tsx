@@ -69,7 +69,11 @@ export function NotificationsPanel({
         </h2>
         <select
           value={audience}
-          onChange={(e) => setAudience(e.target.value as AdminAudience)}
+          onChange={(e) => {
+            const nextAudience = e.target.value as AdminAudience;
+            setAudience(nextAudience);
+            if (nextAudience !== "all") setShowOnHome(false);
+          }}
           className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-[var(--text-primary)]"
         >
           {Object.entries(AUDIENCE_AR).map(([id, label]) => (
@@ -97,9 +101,10 @@ export function NotificationsPanel({
           <input
             type="checkbox"
             checked={showOnHome}
+            disabled={audience !== "all"}
             onChange={(e) => setShowOnHome(e.target.checked)}
           />
-          إظهار في آخر التحديثات على الرئيسية
+          إظهار في آخر التحديثات على الرئيسية (للجميع فقط)
         </label>
         <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
           <input

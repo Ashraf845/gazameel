@@ -65,14 +65,11 @@ create policy "profiles_upsert_own" on public.profiles
     and coalesce(is_admin, false) = false
   );
 
--- التحديث: المستخدم يعدّل صفّه لكن لا يغيّر is_admin
+-- التحديث لصف المستخدم فقط؛ الحقول الحساسة يحميها trigger أدناه
 create policy "profiles_update_own" on public.profiles
   for update
   using (auth.uid() = id)
-  with check (
-    auth.uid() = id
-    and is_admin = (select p.is_admin from public.profiles p where p.id = auth.uid())
-  );
+  with check (auth.uid() = id);
 
 -- مواد الطالب المختارة
 create policy "student_courses_own" on public.student_courses
@@ -125,8 +122,8 @@ create policy "poll_votes_insert_own" on public.poll_votes
   for insert with check (auth.uid() = user_id);
 
 -- ============================================================
--- حماية إضافية: منع تغيير is_admin حتى لو تغيّرت السياسات
--- الترقية تتم فقط عبر service_role من السيرفر (features/auth/auth.ts)
+-- منع تغيير صلاحية الأدمن وربط تيليجرام من العميل.
+-- الترقية والربط يتمان فقط عبر service_role من السيرفر.
 -- ============================================================
 create or replace function public.protect_profile_admin_flag()
 returns trigger
@@ -135,12 +132,9 @@ security definer
 set search_path = public
 as $$
 begin
-  -- إذا حاول العميل تغيير is_admin، أعد القيمة القديمة
-  if new.is_admin is distinct from old.is_admin then
-    -- السماح فقط عندما يكون الدور الحالي service_role (تجاوز عبر JWT claim)
-    if coalesce(auth.jwt() ->> 'role', '') <> 'service_role' then
-      new.is_admin := old.is_admin;
-    end if;
+  if coalesce(auth.jwt() ->> 'role', '') <> 'service_role' then
+    new.is_admin := old.is_admin;
+    new.telegram_chat_id := old.telegram_chat_id;
   end if;
   return new;
 end;

@@ -222,7 +222,12 @@ export async function createAdminMessage(input: {
         })
       : { ok: true as const, sent: 0, failed: 0 };
 
-  if (input.showOnHome && input.kind === "notification") {
+  // الرئيسية عامة؛ لا ننشر عليها إعلانًا مخصصًا لجمهور محدود.
+  if (
+    input.showOnHome &&
+    input.kind === "notification" &&
+    input.audience === "all"
+  ) {
     await admin.from("updates_feed").insert({
       message: `${title} — ${body.slice(0, 180)}`,
     });

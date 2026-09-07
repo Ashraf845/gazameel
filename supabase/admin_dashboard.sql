@@ -71,3 +71,24 @@ create policy "user_message_reads_select_own" on public.user_message_reads
 drop policy if exists "user_message_reads_insert_own" on public.user_message_reads;
 create policy "user_message_reads_insert_own" on public.user_message_reads
   for insert with check (auth.uid() = user_id);
+
+-- ربط تيليجرام وصلاحية الأدمن لا يتغيران من عميل المستخدم.
+create or replace function public.protect_profile_admin_flag()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if coalesce(auth.jwt() ->> 'role', '') <> 'service_role' then
+    new.is_admin := old.is_admin;
+    new.telegram_chat_id := old.telegram_chat_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_protect_profile_admin on public.profiles;
+create trigger trg_protect_profile_admin
+  before update on public.profiles
+  for each row execute procedure public.protect_profile_admin_flag();

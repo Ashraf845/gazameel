@@ -40,7 +40,7 @@ export function withPersistentCookieOptions(
     path: (options?.path as string) || AUTH_COOKIE_OPTIONS.path,
     sameSite: (options?.sameSite as string) || AUTH_COOKIE_OPTIONS.sameSite,
     maxAge:
-      typeof options?.maxAge === "number" && options.maxAge > 0
+      typeof options?.maxAge === "number"
         ? options.maxAge
         : AUTH_COOKIE_MAX_AGE,
   };
