@@ -13,6 +13,12 @@ const PLACEHOLDER_PATTERNS = [
   /^YOUR_BOT$/i,
 ];
 
+export type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Record<string, unknown>;
+};
+
 export function isMissingOrPlaceholder(value: string | undefined | null): boolean {
   if (value == null) return true;
   const v = String(value).trim();

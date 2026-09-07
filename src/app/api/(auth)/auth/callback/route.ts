@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabasePublicEnv } from "@/shared/lib/supabase/config";
+import { getSupabasePublicEnv, type CookieToSet } from "@/shared/lib/supabase/config";
 import { exchangePkceCode, getCodeVerifierFromRequest } from "@/shared/lib/supabase/pkce-exchange";
 
 export async function GET(request: NextRequest) {
@@ -33,18 +33,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let sessionCookies: {
-    name: string;
-    value: string;
-    options?: Record<string, unknown>;
-  }[] = [];
+  let sessionCookies: CookieToSet[] = [];
 
   const supabase = createServerClient(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookies) {
+      setAll(cookies: CookieToSet[]) {
         sessionCookies = cookies;
       },
     },

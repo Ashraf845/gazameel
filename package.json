@@ -41,8 +41,5 @@
     "typescript": "^5",
     "vercel": "^59.11.7",
     "ws": "^8.21.3"
-  },
-  "optionalDependencies": {
-    "@next/swc-darwin-x64": "^16.3.2"
   }
 }

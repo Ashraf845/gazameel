@@ -1,12 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabasePublicEnv } from "@/shared/lib/supabase/config";
-
-type CookieToSet = {
-  name: string;
-  value: string;
-  options?: Record<string, unknown>;
-};
+import { getSupabasePublicEnv, type CookieToSet } from "@/shared/lib/supabase/config";
 
 /** PKCE — يبدأ OAuth ويحفظ code_verifier في cookie → يرجع لـ /api/auth/callback */
 export async function GET(request: NextRequest) {
@@ -25,7 +19,7 @@ export async function GET(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookies) {
+      setAll(cookies: CookieToSet[]) {
         cookiesToApply = cookies;
       },
     },
