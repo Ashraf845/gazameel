@@ -59,7 +59,7 @@ npm run check:phase2            # جاهزية البيئة (بدون طباعة
 ### النشر
 
 ادفع إلى GitHub واربط المشروع بـ **Vercel** (`npx vercel` إن لزم). أضف نفس متغيرات البيئة بما فيها `TELEGRAM_*` و `CRON_SECRET`.  
-Cron كل ساعة يستدعي `/api/cron/reminders` (انظر `vercel.json`).
+Cron يوميًا يستدعي `/api/cron/reminders` (انظر `vercel.json` — Hobby يسمح بمرة واحدة يوميًا).
 
 ## المسارات
 
