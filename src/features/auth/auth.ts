@@ -1,6 +1,8 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/shared/lib/supabase/server";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
+import { withTimeout } from "@/shared/lib/timeout";
 
 export type Profile = {
   id: string;
@@ -13,16 +15,26 @@ export type Profile = {
   telegram_chat_id: string | null;
 };
 
-export async function getSessionUser() {
+export const getSessionUser = cache(async () => {
   const supabase = await createClient();
   if (!supabase) return null;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
+  try {
+    const result = await withTimeout(supabase.auth.getUser(), 2500);
+    if (result?.data?.user) return result.data.user;
+  } catch {
+    /* الشبكة / مهلة — نكمّل من الجلسة المحلية */
+  }
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.user ?? null;
+  } catch {
+    return null;
+  }
+});
 
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const user = await getSessionUser();
   if (!user) return null;
 
@@ -31,7 +43,9 @@ export async function getProfile(): Promise<Profile | null> {
 
   const { data } = await supabase
     .from("profiles")
-    .select("*")
+    .select(
+      "id, full_name, email, student_id, major, is_admin, onboarding_done, telegram_chat_id"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -51,7 +65,7 @@ export async function getProfile(): Promise<Profile | null> {
   }
 
   return data as Profile;
-}
+});
 
 export async function requireUser() {
   const user = await getSessionUser();

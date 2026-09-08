@@ -4,9 +4,12 @@
  * دخول / قائمة بروفايل عند الضغط على الصورة
  */
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createClient } from "@/shared/lib/supabase/client";
 import { getAvatarUrl, getDisplayName } from "@/features/auth/user-display";
+import { NavPendingHint } from "@/shared/components/NavPendingHint";
+import { subscribeClientAuth } from "@/features/auth/client-session";
 import type { User } from "@supabase/supabase-js";
 
 type ProfileInfo = {
@@ -18,6 +21,7 @@ type ProfileInfo = {
 };
 
 export function AuthNav() {
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileInfo | null>(null);
   const [open, setOpen] = useState(false);
@@ -25,58 +29,15 @@ export function AuthNav() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadUser() {
-      try {
-        const supabase = createClient();
-        if (!supabase) return;
-        const { data: authData } = await supabase.auth.getUser();
-        const u = authData.user ?? null;
-        if (cancelled) return;
-        setUser(u);
-
-        if (u) {
-          const { data } = await supabase
-            .from("profiles")
-            .select("full_name, student_id, is_admin, onboarding_done, telegram_chat_id")
-            .eq("id", u.id)
-            .maybeSingle();
-          if (!cancelled) {
-            setProfile(
-              data
-                ? {
-                    full_name: data.full_name ?? null,
-                    student_id: data.student_id ?? null,
-                    is_admin: !!data.is_admin,
-                    onboarding_done: !!data.onboarding_done,
-                    telegram_chat_id: data.telegram_chat_id ?? null,
-                  }
-                : null
-            );
-          }
-        } else {
-          setProfile(null);
-        }
-      } catch {
-        if (!cancelled) {
-          setUser(null);
-          setProfile(null);
-        }
-      }
-    }
-
-    loadUser();
-    const supabase = createClient();
-    if (!supabase) return;
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      loadUser();
+    return subscribeClientAuth(({ user: nextUser, profile: nextProfile }) => {
+      setUser(nextUser);
+      setProfile(nextProfile);
     });
-    return () => {
-      cancelled = true;
-      sub.subscription.unsubscribe();
-    };
   }, []);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -260,6 +221,7 @@ function MenuLink({
       className="block px-4 py-2 text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--accent-gold)_8%,transparent)] hover:text-[var(--accent-gold)]"
     >
       {children}
+      <NavPendingHint />
     </Link>
   );
 }

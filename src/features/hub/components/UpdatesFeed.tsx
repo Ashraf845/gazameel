@@ -1,12 +1,4 @@
-/**
- * شريط / قائمة آخر التحديثات
- * يُعرض في الرئيسية عند ربط قاعدة البيانات
- */
-type FeedItem = {
-  id: string;
-  message: string;
-  created_at: string;
-};
+import type { FeedItem } from "@/features/hub/updates";
 
 export function UpdatesFeed({ items }: { items: FeedItem[] }) {
   if (!items.length) {

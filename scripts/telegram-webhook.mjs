@@ -8,7 +8,7 @@
  *   node scripts/telegram-webhook.mjs delete
  *   node scripts/telegram-webhook.mjs me
  *   node scripts/telegram-webhook.mjs commands
- *   node scripts/telegram-webhook.mjs setup
+ *   node scripts/telegram-webhook.mjs photo
  *
  * يتطلب: TELEGRAM_BOT_TOKEN
  * set: NEXT_PUBLIC_APP_URL (HTTPS للإنتاج)
@@ -146,6 +146,48 @@ if (action === "commands") {
   process.exit(data.ok ? 0 : 1);
 }
 
+if (action === "photo") {
+  const jpgPath = resolve(root, "public/gazameel-bot.jpg");
+  if (!existsSync(jpgPath)) {
+    console.error("ضع الشعار في public/gazameel-bot.jpg أولًا.");
+    process.exit(1);
+  }
+  const buf = new Uint8Array(readFileSync(jpgPath));
+  const form = new FormData();
+  form.append(
+    "photo",
+    JSON.stringify({ type: "static", photo: "attach://pic" })
+  );
+  form.append("pic", new Blob([buf], { type: "image/jpeg" }), "gazameel-bot.jpg");
+  const res = await fetch(
+    `https://api.telegram.org/bot${token}/setMyProfilePhoto`,
+    { method: "POST", body: form, signal: AbortSignal.timeout(30000) }
+  );
+  const data = await res.json();
+  console.log(JSON.stringify({ ok: data.ok, description: data.description || "profile photo set" }, null, 2));
+  const adminChat = (env.ADMIN_TELEGRAM_CHAT_ID || "").trim();
+  if (data.ok && adminChat) {
+    const sendForm = new FormData();
+    sendForm.append("chat_id", adminChat);
+    sendForm.append(
+      "caption",
+      "شعار Gazameel صار صورة البوت. اكتب /start بعد رفع الموقع لتشوفه مع دليل الخطوات."
+    );
+    sendForm.append(
+      "photo",
+      new Blob([buf], { type: "image/jpeg" }),
+      "gazameel-bot.jpg"
+    );
+    const sent = await fetch(
+      `https://api.telegram.org/bot${token}/sendPhoto`,
+      { method: "POST", body: sendForm, signal: AbortSignal.timeout(30000) }
+    );
+    const sentData = await sent.json();
+    console.log("preview:", sentData.ok ? "sent to admin chat" : sentData.description);
+  }
+  process.exit(data.ok ? 0 : 1);
+}
+
 if (action === "setup") {
   const me = await tg(token, "getMe");
   if (!me.ok) {
@@ -182,7 +224,7 @@ if (action === "setup") {
 }
 
 console.error(
-  "الاستخدام: node scripts/telegram-webhook.mjs <set|info|delete|me|commands|setup>"
+  "الاستخدام: node scripts/telegram-webhook.mjs <set|info|delete|me|commands|setup|photo>"
 );
 process.exit(1);
 

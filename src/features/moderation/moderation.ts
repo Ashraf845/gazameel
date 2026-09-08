@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/shared/lib/supabase/admin";
+import { revalidatePublicContent } from "@/shared/lib/revalidate";
 
 export type ReviewAction = "approve" | "reject";
 
@@ -70,6 +71,11 @@ export async function reviewResource(
       message: `تم إضافة «${resource.title}» بواسطة ${who}`,
       resource_id: resourceId,
     });
+
+    // المحتوى المعتمد تغيّر → فرّغ كاش الصفحات العامة الآن بدل انتظار المهلة
+    revalidatePublicContent(
+      (resource.courses as { code?: string } | null)?.code
+    );
 
     return {
       ok: true as const,

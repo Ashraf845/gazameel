@@ -3,6 +3,7 @@ import { requireAdmin } from "@/features/auth/auth";
 import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supabase/admin";
 import { validateUploadFile, sniffMime, extForMime } from "@/features/upload/files";
 import { isAllowedResourceType } from "@/shared/lib/courses";
+import { revalidatePublicContent } from "@/shared/lib/revalidate";
 import { randomUUID } from "crypto";
 
 /** رفع أدمن مباشر → approved فورًا */
@@ -97,6 +98,8 @@ export async function POST(request: Request) {
       message: `تم إضافة «${title}» بواسطة الإدارة`,
       resource_id: resource.id,
     });
+
+    revalidatePublicContent(courseCode);
 
     return NextResponse.json({ ok: true, id: resource.id });
   } catch (e) {

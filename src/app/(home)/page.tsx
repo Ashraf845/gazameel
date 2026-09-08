@@ -5,13 +5,15 @@ import Link from "next/link";
 import { BRAND, TAGLINE_AR, TAGLINE_EN } from "@/shared/lib/constants";
 import { isSupabaseConfigured } from "@/shared/lib/supabase/config";
 import { SupabaseSetupBanner } from "@/shared/components/SupabaseSetupNotice";
-import { getSessionUser } from "@/features/auth/auth";
+import { UpdatesFeed } from "@/features/hub/components/UpdatesFeed";
+import { listHomeUpdates } from "@/features/hub/updates";
+import { HeroLoginLink } from "@/features/auth/HeroLoginLink";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function HomePage() {
   const configured = isSupabaseConfigured();
-  const user = configured ? await getSessionUser() : null;
+  const updates = configured ? await listHomeUpdates() : [];
 
   return (
     <div>
@@ -93,11 +95,7 @@ export default async function HomePage() {
             <Link href="/hub" className="cta-button">
               ادخل المكتبة
             </Link>
-            {!user && (
-              <Link href="/login" className="btn-ghost">
-                دخول Google
-              </Link>
-            )}
+            <HeroLoginLink />
             <Link href="/upload" className="btn-ghost">
               ساهم بملخص
             </Link>
@@ -127,6 +125,15 @@ export default async function HomePage() {
           />
         </div>
       </section>
+
+      {configured && (
+        <section className="mx-auto max-w-3xl px-4 pb-16">
+          <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+            آخر التحديثات
+          </h2>
+          <UpdatesFeed items={updates} />
+        </section>
+      )}
     </div>
   );
 }

@@ -33,17 +33,25 @@ export default async function TelegramLinkPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12 space-y-4">
-      <h1 className="text-3xl font-bold">ربط تيليجرام</h1>
-      <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
-        اضغط الرابط لفتح البوت وإرسال /start — يُحفظ chat id عندك لاستقبال تذكيرات
-        الامتحانات وسؤال اليوم. الرابط لمرة واحدة وينتهي خلال دقائق.
+      <h1 className="text-3xl font-bold text-[var(--text-primary)]">ربط تيليجرام</h1>
+      <ol className="list-decimal pr-5 space-y-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+        <li>سجّل دخول بجوجل على الموقع (أنت داخل الآن).</li>
+        <li>اضغط الزر تحت لفتح البوت — يرسل /start ويربط حسابك تلقائيًا.</li>
+        <li>
+          بعد الربط تصلك تذكيرات الامتحانات هنا، وتقدر تستخدم /countdown و
+          /daily في البوت.
+        </li>
+      </ol>
+      <p className="text-xs text-[var(--text-secondary)]">
+        الرابط لمرة واحدة وينتهي خلال دقائق. إذا فشل، أعد تحميل الصفحة واطلب رابطًا
+        جديدًا.
       </p>
       {profile?.telegram_chat_id ? (
         <p className="text-[var(--accent-gold)] text-sm">
-          مرتبط حاليًا (chat: {profile.telegram_chat_id})
+          مرتبط حاليًا — التذكيرات ستصلك على تيليجرام.
         </p>
       ) : (
-        <p className="text-[var(--warn)] text-sm">غير مرتبط بعد</p>
+        <p className="text-[var(--warn)] text-sm">غير مرتبط بعد — أكمل الخطوة 2.</p>
       )}
       {deepLink ? (
         <a

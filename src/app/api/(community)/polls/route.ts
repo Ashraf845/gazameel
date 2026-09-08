@@ -2,37 +2,18 @@ import { NextResponse } from "next/server";
 import { requireAdmin, requireUser, getProfile } from "@/features/auth/auth";
 import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supabase/admin";
 import { createClient } from "@/shared/lib/supabase/server";
+import { listActivePolls } from "@/features/community/polls";
 
 export async function GET() {
   try {
-    const admin = createAdminClient();
-    if (!admin) {
+    const result = await listActivePolls();
+    if (!result.ok) {
       return NextResponse.json(
-        { polls: [], error: SUPABASE_UNCONFIGURED_AR },
-        { status: 503 }
+        { polls: [], error: result.error },
+        { status: result.status }
       );
     }
-    const { data } = await admin
-      .from("polls")
-      .select("id, question, options, course_id, created_at, courses(name_ar)")
-      .eq("active", true)
-      .order("created_at", { ascending: false });
-
-    const withCounts = await Promise.all(
-      (data || []).map(async (p) => {
-        const { data: votes } = await admin
-          .from("poll_votes")
-          .select("option_index")
-          .eq("poll_id", p.id);
-        const options = p.options as string[];
-        const counts = options.map(
-          (_, i) => (votes || []).filter((v) => v.option_index === i).length
-        );
-        return { ...p, counts, total_votes: votes?.length ?? 0 };
-      })
-    );
-
-    return NextResponse.json({ polls: withCounts });
+    return NextResponse.json({ polls: result.polls });
   } catch {
     return NextResponse.json({ polls: [] });
   }

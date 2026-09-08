@@ -1,12 +1,10 @@
 /**
- * مسار قديم /auth/callback — نُحوّل إلى المسار الرسمي /api/auth/callback
- * حتى لا يضيع إعداد Google Redirect على مسارين مختلفين.
+ * /auth/callback — نفس معالجة /api/auth/callback.
+ * موجود حتى يعمل أي Redirect URL مضبوط في Supabase/Google بدون فقدان الجلسة.
  */
-import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { handleAuthCallback } from "@/features/auth/callback";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const target = new URL("/api/auth/callback", url.origin);
-  url.searchParams.forEach((v, k) => target.searchParams.set(k, v));
-  return NextResponse.redirect(target);
+export async function GET(request: NextRequest) {
+  return handleAuthCallback(request);
 }

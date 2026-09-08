@@ -4,6 +4,7 @@ import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supaba
 import { validateUploadFile, sniffMime, extForMime } from "@/features/upload/files";
 import { MAX_PENDING_PER_USER } from "@/shared/lib/constants";
 import { notifyAdminNewSubmission } from "@/features/automations/telegram";
+import { runAfterResponse } from "@/shared/lib/background";
 import { randomUUID } from "crypto";
 import { isAllowedResourceType } from "@/shared/lib/courses";
 
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
 
     const { count } = await admin
       .from("resources")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("uploaded_by", user.id)
       .eq("status", "pending");
 
@@ -110,12 +111,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: insErr?.message || "فشل الحفظ" }, { status: 500 });
     }
 
-    // إشعار تيليجرام (لا يفشل الرفع إن تعطّل البوت)
-    try {
-      await notifyAdminNewSubmission(resource.id);
-    } catch {
-      /* ignore */
-    }
+    // إشعار تيليجرام بعد الاستجابة — المستخدم لا ينتظر البوت
+    runAfterResponse(() => notifyAdminNewSubmission(resource.id));
 
     return NextResponse.json({
       ok: true,

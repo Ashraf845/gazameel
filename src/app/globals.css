@@ -293,6 +293,18 @@ html.light-theme .gold-shimmer::after {
     background-size: auto;
     background-position: 0 0;
   }
+
+  .nav-progress,
+  .nav-loading-orb,
+  .nav-dots i,
+  .nav-link-pulse.is-pending,
+  .nav-loading-btn {
+    animation: none;
+  }
+
+  .nav-loading-btn {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes fadeIn {
@@ -303,5 +315,150 @@ html.light-theme .gold-shimmer::after {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* تحميل التنقّل — شريط + زر حيوي */
+.nav-loading-layer {
+  pointer-events: none;
+}
+
+.nav-progress {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  z-index: 80;
+  transform-origin: right center;
+  background: var(--gold-gradient);
+  background-size: 220% 100%;
+  animation: nav-bar-run 1.1s ease-in-out infinite;
+}
+
+.nav-loading-btn {
+  position: fixed;
+  bottom: 1.4rem;
+  left: 50%;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 4px;
+  background: var(--gold-gradient);
+  color: var(--accent-gold-text-on);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--accent-gold) 28%, transparent);
+  animation: nav-btn-pop 0.4s ease, nav-btn-float 1.5s ease-in-out 0.4s infinite;
+}
+
+.nav-loading-orb {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 3px solid color-mix(in srgb, var(--accent-gold) 28%, transparent);
+  border-top-color: var(--accent-gold);
+  animation: nav-spin 0.75s linear infinite;
+}
+
+.nav-loading-orb--sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+}
+
+.nav-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-dots i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: nav-dot 0.85s ease-in-out infinite;
+}
+
+.nav-dots i:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.nav-dots i:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+.nav-link-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-inline-start: 6px;
+  border-radius: 999px;
+  background: var(--accent-gold);
+  opacity: 0;
+  vertical-align: middle;
+}
+
+.nav-link-pulse.is-pending {
+  opacity: 1;
+  animation: nav-dot 0.7s ease-in-out infinite;
+}
+
+@keyframes nav-bar-run {
+  0% {
+    transform: scaleX(0.12);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleX(0.78);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(0.12);
+    opacity: 0.7;
+  }
+}
+
+@keyframes nav-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes nav-dot {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes nav-btn-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes nav-btn-float {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px);
   }
 }

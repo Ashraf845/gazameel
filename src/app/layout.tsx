@@ -4,6 +4,7 @@ import { Navbar } from "@/shared/components/Navbar";
 import { Footer } from "@/shared/components/Footer";
 import { WelcomeBanner } from "@/shared/components/WelcomeBanner";
 import { SessionKeepAlive } from "@/shared/components/SessionKeepAlive";
+import { NavigationLoader } from "@/shared/components/NavigationLoader";
 import { BRAND, TAGLINE_EN } from "@/shared/lib/constants";
 
 /**
@@ -29,6 +30,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
+          rel="preload"
+          as="style"
+          href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+        />
+        <link
           href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
           rel="stylesheet"
         />
@@ -40,6 +46,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased">
         <Navbar />
+        <NavigationLoader />
         <SessionKeepAlive />
         <WelcomeBanner />
         <main className="flex-1">{children}</main>

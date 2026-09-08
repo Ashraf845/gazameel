@@ -14,7 +14,7 @@ gazameel/
 │   ├── app/                 # مسارات Next فقط (صفحات + API) — مجمّعة بـ route groups
 │   ├── features/            # منطق ومكوّنات كل ميزة (Feature-based)
 │   ├── shared/              # مشترك بين الميزات (UI عام + supabase + ثوابت)
-│   └── middleware.ts        # تحديث جلسة Supabase لكل طلب
+│   └── proxy.ts             # تجديد جلسة Supabase على المسارات المحمية فقط
 ├── supabase/                # Database: schema + RLS + Storage
 ├── scripts/                 # أدوات تشغيل (webhook، فحوصات، seed)
 ├── docs/                    # دروس المراحل والربط
@@ -40,7 +40,7 @@ gazameel/
 | **Front-end** | صفحات ومكوّنات | `src/app/(*)/**/page.tsx`, `src/features/*/components`, `src/shared/components` |
 | **Back-end** | HTTP APIs + منطق سيرفر | `src/app/api/(*)/**/route.ts` رفيع + `src/features/*` |
 | **Database** | جداول، RLS، Storage | `supabase/` |
-| **Auth** | جلسة Google / حماية | `src/features/auth/`, `src/shared/lib/supabase/`, `middleware.ts`, `app/(auth)/`, `api/(auth)/` |
+| **Auth** | جلسة Google / حماية | `src/features/auth/`, `src/shared/lib/supabase/`, `proxy.ts`, `app/(auth)/`, `api/(auth)/` |
 | **Automations** | تيليجرام، Cron | `src/features/automations/`, `api/(automations)/`, `scripts/`, `vercel.json` |
 
 ---
@@ -49,14 +49,14 @@ gazameel/
 
 | Feature | محتوى المجلد | صفحات (route group) | API (route group) |
 |---------|--------------|---------------------|-------------------|
-| `auth` | `auth.ts`, `user-display.ts` | `(auth)/login`, `onboarding`, `auth/*` | `(auth)/auth/*`, `onboarding` |
-| `hub` | `components/DownloadButton`, `UpdatesFeed` | `(hub)/hub`, `hub/[code]` | `(hub)/resources/[id]/download` |
+| `auth` | `auth.ts`, `client-session.ts`, `user-display.ts`, `HeroLoginLink.tsx` | `(auth)/login`, `onboarding`, `auth/*` | `(auth)/auth/*`, `onboarding` |
+| `hub` | `catalog.ts`, `updates.ts` + `DownloadButton`, `UpdatesFeed`, `HubCourseGrid`, `CourseResources` | `(hub)/hub`, `hub/[code]` | `(hub)/resources/[id]/download` |
 | `upload` | `files.ts` | `(upload)/upload`, `my-submissions` | `(upload)/upload` |
 | `moderation` | `moderation.ts` | — (يُستدعى من admin + telegram) | عبر `(admin)/admin/review|submissions` |
-| `quiz` | جاهز للمنطق/مكوّنات | `(quiz)/quiz`, `progress` | `(quiz)/quiz/*`, `(quiz)/admin/questions` |
-| `calendar` | جاهز للمنطق | `(calendar)/calendar` | `(calendar)/admin/exams` |
-| `admin` | `dashboard.ts`, `email.ts` + مكوّنات الإحصائيات/البريد/الإشعارات | `(admin)/admin` | `(admin)/admin/review|submissions|resources|dashboard|messages` |
-| `community` | صندوق الرسائل + صفحات المجتمع | `(community)/polls|contributors|about|telegram|inbox` | `(community)/polls|messages` |
+| `quiz` | `quiz.ts`, `grading.ts`, `components/QuizPanel` | `(quiz)/quiz`, `progress` | `(quiz)/quiz/*`, `(quiz)/admin/questions` |
+| `calendar` | `events.ts`, `labels.ts`, `components/ExamEventsList` | `(calendar)/calendar`, `countdown` | `(calendar)/calendar/events` + عبر `(admin)/admin/exams` |
+| `admin` | `dashboard.ts`, `email.ts` + مكوّنات الإحصائيات/البريد/الإشعارات/الطابور/الأسئلة | `(admin)/admin` | `(admin)/admin/review|submissions|resources|dashboard|messages` |
+| `community` | صندوق الرسائل + `contributors.ts` + `polls.ts` + صفحات المجتمع | `(community)/polls|contributors|about|telegram|inbox` | `(community)/polls|messages` |
 | `automations` | `telegram.ts` | — | `(automations)/telegram/webhook`, `cron/reminders` |
 | — | — | `(home)/page.tsx` → `/` | — |
 
@@ -69,6 +69,7 @@ gazameel/
 ### مكوّنات مشتركة (`shared/components`)
 
 - `Navbar.tsx` / `SiteNav.tsx` / `AuthNav.tsx` — تنقّل + قائمة بروفايل (صورة → حسابي)
+- `NavigationLoader.tsx` / `PageLoading.tsx` / `NavPendingHint.tsx` — تحميل حيوي عند الانتقال
 - `Footer.tsx`, `WelcomeBanner.tsx`, `SessionKeepAlive.tsx`, `ThemeToggle.tsx`
 - `SupabaseSetupNotice.tsx` — تنبيه عند غياب الإعداد
 
@@ -82,8 +83,10 @@ gazameel/
 | `supabase/config.ts` | رفض القيم الفارغة / placeholders |
 | `supabase/pkce-exchange.ts` | تبادل PKCE لـ OAuth |
 | `constants.ts` | حدود الملفات، العلامة، نصوص ثابتة |
+| `nav.ts` | روابط الشريط العلوي + قائمة المزيد (للتذييل أيضًا) |
 | `types.ts` | أنواع مشتركة |
-| `courses.ts` | قائمة المواد (مستخدمة من عدة ميزات) |
+| `timeout.ts` | مهلة لطلبات الشبكة حتى لا تعلق الصفحات |
+| `courses.ts` | كتالوج احتياطي للمواد (جدول `courses` هو المصدر بعد الربط) |
 
 ### قواعد الواجهة
 
@@ -102,8 +105,8 @@ gazameel/
 | رفع ومراجعة | `/api/upload`, `/api/admin/review`, `/api/admin/submissions`, `/api/admin/resources`, `/api/resources/[id]/download` | `features/upload`, `features/moderation` |
 | لوحة التحكم | `/api/admin/dashboard`, `/api/admin/messages` | `features/admin/dashboard` |
 | صندوق المستخدم | `/api/messages` | `features/community/messages` |
-| كويز | `/api/quiz/start`, `/api/quiz/submit`, `/api/admin/questions` | جداول questions / quiz_attempts |
-| مواعيد | `/api/admin/exams` | `exam_events` |
+| كويز | `/api/quiz/start`, `/api/quiz/submit`, `/api/admin/questions` | `features/quiz/quiz.ts` |
+| مواعيد | `/api/calendar/events`, `/api/admin/exams` | `exam_events` |
 | استطلاعات | `/api/polls` | polls / poll_votes |
 | Onboarding | `/api/onboarding` | profiles, student_courses |
 | Auth | `/api/auth/google`, `/callback`, `/signout` | `features/auth`, `shared/lib/supabase` |
@@ -124,12 +127,14 @@ gazameel/
 
 | الملف | المحتوى |
 |--------|---------|
-| `schema.sql` | الجداول |
-| `rls.sql` | سياسات Row Level Security |
+| `schema.sql` | الجداول + الفهارس + الواجهات |
+| `rls.sql` | سياسات Row Level Security (يشمل إغلاق قراءة أسئلة الكويز من العميل) |
+| `upgrade.sql` | ترقية قاعدة موجودة: إعلانات، فهارس، واجهات، إغلاق إجابات الكويز |
+| `admin_dashboard.sql` / `performance.sql` | مؤشر إلى `upgrade.sql` (لا تنفّذهما في SQL Editor) |
+| `rls-check.sql` | فحص: جداول بلا RLS، أو سياسات بلا `(select auth.uid())` |
 | `storage-policies.sql` | صلاحيات الـ bucket |
 | `STORAGE.md` | توثيق مسارات الملفات |
 | `telegram_link_tokens.sql` | ترقية idempotent لجدول ربط تيليجرام (قواعد قديمة) |
-| `admin_dashboard.sql` | ترقية سجل الإعلانات وصندوق رسائل المستخدمين |
 
 ### الجداول الأساسية
 
@@ -140,6 +145,9 @@ gazameel/
 | `student_courses` | مواد الطالب |
 | `resources` | ملفات Hub (pending / approved / rejected) |
 | `updates_feed` | تغذية التحديثات |
+| `course_approved_counts` | واجهة: المادة + عدد الملفات المعتمدة (طلب واحد للكتالوج) |
+| `admin_dashboard_stats` | واجهة: أعداد لوحة الأدمن في صف واحد (service role) |
+| `contributor_stats` | واجهة تجميع المساهمين |
 | `exam_events` | مواعيد الاختبارات |
 | `questions` / `quiz_attempts` | بنك الأسئلة والمحاولات |
 | `polls` / `poll_votes` | الاستطلاعات |
@@ -150,7 +158,7 @@ gazameel/
 
 ### قواعد قاعدة البيانات
 
-1. أي جدول جديد: أضفه في `schema.sql` **ثم** سياسات في `rls.sql`.
+1. أي جدول جديد: أضفه في `schema.sql` مع `enable row level security` في نفس التغيير، **ثم** سياسات في `rls.sql`، ثم تحقّق بـ `rls-check.sql`.
 2. لا تعتمد على `service_role` من الواجهة — فقط من Route Handlers / cron.
 3. مسارات Storage: `pending/{userId}/...` و `approved/{courseId}/...` — غيّرها فقط عبر `features/moderation`.
 
@@ -160,8 +168,9 @@ gazameel/
 
 | القطعة | الموقع |
 |--------|--------|
-| تحديث الكوكيز | `src/middleware.ts` |
-| جلسة / ملف المستخدم | `src/features/auth/auth.ts` |
+| تحديث الكوكيز | `src/proxy.ts` |
+| جلسة / ملف المستخدم | `src/features/auth/auth.ts` (سيرفر) + `client-session.ts` (متصفح، طلب واحد مشترك) |
+| معالجة رجوع Google | `src/features/auth/callback.ts` (يخدم `/auth/callback` و`/api/auth/callback`) |
 | عرض الاسم/الصورة | `src/features/auth/user-display.ts` |
 | عملاء Supabase | `src/shared/lib/supabase/*` |
 | صفحات | `app/(auth)/login`, `onboarding`, `auth/confirm` |
@@ -170,9 +179,11 @@ gazameel/
 ### تدفق مختصر
 
 ```
-المستخدم → /login → api/auth/google → Google → api/auth/callback
-  → كوكيز جلسة → middleware يجدّدها → getProfile() / requireUser()
+المستخدم → /login → api/auth/google → Google → api/auth/callback (أو /auth/callback)
+  → كوكيز جلسة → proxy.ts يجدّدها على المسارات المحمية → getProfile() / requireUser()
 ```
+
+كلا المسارين يستدعيان `handleAuthCallback` نفسها، فأي Redirect URL مضبوط في Supabase يعمل.
 
 ---
 
@@ -187,8 +198,7 @@ gazameel/
 | أوامر البوت | `/start` `/help` `/countdown` `/daily` `/whoami` في `features/automations/telegram.ts` | — |
 | بث إشعار للطلاب | `broadcastTelegramToChats` من لوحة الأدمن | توكن البوت |
 | بث بريد للطلاب | `features/admin/email.ts` عبر Resend Batch API | `RESEND_API_KEY` + `BROADCAST_EMAIL_FROM` |
-| تذكيرات | `api/(automations)/cron/reminders` + `vercel.json` | `Bearer CRON_SECRET` |
-| إدارة Webhook | `scripts/telegram-webhook.mjs` (`set` / `setup` / `commands`) | يقرأ `.env.local` |
+| إدارة Webhook | `scripts/telegram-webhook.mjs` (`set` / `setup` / `commands` / `photo`) | يقرأ `.env.local` |
 | تشغيل محلي | `scripts/telegram-poll.mjs` → `npm run telegram:poll` | getUpdates ثم POST للـ webhook المحلي |
 
 ---
@@ -260,9 +270,21 @@ src/app/(<name>)/<path>/page.tsx
 
 ---
 
-## 11. حدود التوسع لاحقًا
+## 11. حدود التوسع والأداء
 
 الشكل الحالي كافٍ طالما المنطق في `features/` والـ API رفيع وDB محمية بـ RLS.
+
+**أداء التنقّل (إلزامي للصفحات العامة):**
+
+1. الصفحة تعرض الهيكل فورًا — البيانات من مكوّن عميل أو `/api/...` بعد الرسم.
+2. `proxy.ts` يجدّد الجلسة على المسارات المحمية فقط (`/admin`, `/upload`, `/inbox`…) لا على `/` و`/hub`.
+3. استعلامات القوائم عليها `limit`/`range` وأعمدة محددة (لا `select("*")`) وفهارس في `schema.sql` / `upgrade.sql`.
+4. المكتبة والمساهمون والتقويم تُقرأ على السيرفر (مع صفحات للملفات). لا تسحب آلاف الصفوف من المتصفح.
+5. سياسات RLS تستخدم `(select auth.uid())` — تُحسب مرة لكل طلب بدل كل صف.
+6. بث تيليجرام يُرسل على دفعات متوازية، والإشعارات بعد الاستجابة عبر `runAfterResponse` (`shared/lib/background.ts`) بسقف زمني، ونداءات البوت بمهلة 5 ثوانٍ.
+7. أي أداة تتصل بـ Postgres مباشرة: **6543** (Transaction) للتشغيل و**5432** (Session) للترحيلات.
+8. عند تغيّر محتوى معتمد أو موعد: `revalidatePublicContent` / `revalidateCalendar` (`shared/lib/revalidate.ts`) — لا تعتمد على المهلة الزمنية وحدها.
+9. أي جدول جديد: `enable row level security` فورًا في `schema.sql`، ثم تحقّق بـ `supabase/rls-check.sql`.
 
 فكّر بفصل خدمة لاحقًا فقط إذا صار البوت/الـ cron ثقيلين جدًا، أو احتجت طابور مهام منفصل.
 
@@ -274,5 +296,10 @@ src/app/(<name>)/<path>/page.tsx
 - دروس المراحل: `docs/درس-المرحلة-1.md` … `3`
 - قالب الأسرار: `.env.example`
 - فحص جاهزية المرحلة 2: `npm run check:phase2`
+- اختبارات الوحدة: `npm test`
 - قاعدة Cursor: `.cursor/rules/gazameel-structure.mdc`
 - تباين الثيم: `.cursor/rules/theme-contrast.mdc` + `.cursor/skills/theme-contrast/`
+- أداء Next.js: `.cursor/rules/nextjs-performance.mdc` + `.cursor/skills/nextjs-performance/`
+- أداء Supabase: `.cursor/skills/supabase-performance/`
+- أداء وتوسّع Supabase: `.cursor/skills/supabase-performance/`
+- دخول Google وثبات الجلسة: `.cursor/skills/supabase-google-auth/`

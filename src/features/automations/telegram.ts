@@ -1,16 +1,26 @@
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, InputFile } from "grammy";
 import { randomBytes } from "crypto";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { createSignedUrl, reviewResource } from "@/features/moderation/moderation";
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { isMissingOrPlaceholder } from "@/shared/lib/supabase/config";
 
 const LINK_TOKEN_TTL_MS = 15 * 60 * 1000;
 
+/**
+ * مهلة كل نداء لواجهة تيليجرام. الافتراضي في grammy 500 ثانية —
+ * على Serverless شبكة بطيئة تعني دالة معلّقة حتى نهاية مهلة المنصة.
+ */
+const TELEGRAM_TIMEOUT_SECONDS = 5;
+
 export function getBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (isMissingOrPlaceholder(token)) return null;
   try {
-    return new Bot(token!);
+    return new Bot(token!, {
+      client: { timeoutSeconds: TELEGRAM_TIMEOUT_SECONDS },
+    });
   } catch {
     return null;
   }
@@ -23,12 +33,61 @@ export function getAdminChatId() {
 }
 
 const BOT_COMMANDS = [
-  { command: "start", description: "بدء الربط والترحيب" },
-  { command: "help", description: "قائمة الأوامر" },
+  { command: "start", description: "دليل الخطوات من البداية" },
+  { command: "help", description: "نفس الدليل + الأوامر" },
   { command: "countdown", description: "العد التنازلي للمواعيد" },
   { command: "daily", description: "سؤال اليوم" },
   { command: "whoami", description: "عرض رقم المحادثة chat_id" },
 ];
+
+function getPublicAppUrl() {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  if (
+    raw &&
+    raw.startsWith("https://") &&
+    !raw.includes("localhost") &&
+    !raw.includes("127.0.0.1")
+  ) {
+    return raw.replace(/\/$/, "");
+  }
+  return "https://gazameel.vercel.app";
+}
+
+function siteKeyboard() {
+  const origin = getPublicAppUrl();
+  return new InlineKeyboard()
+    .url("المكتبة", `${origin}/hub`)
+    .url("الاختبارات", `${origin}/quiz`)
+    .row()
+    .url("رفع ملف", `${origin}/upload`)
+    .url("مساهماتي", `${origin}/my-submissions`);
+}
+
+function brandPhotoSource() {
+  const jpg = join(process.cwd(), "public", "gazameel-bot.jpg");
+  const png = join(process.cwd(), "public", "gazameel-bot.png");
+  if (existsSync(jpg)) return new InputFile(jpg);
+  if (existsSync(png)) return new InputFile(png);
+  return `${getPublicAppUrl()}/gazameel-bot.jpg`;
+}
+
+async function sendBrandedWelcome(
+  bot: Bot,
+  chatId: number,
+  caption: string
+) {
+  try {
+    await bot.api.sendPhoto(chatId, brandPhotoSource(), {
+      caption,
+      reply_markup: siteKeyboard(),
+    });
+  } catch (e) {
+    console.error("sendBrandedWelcome", e);
+    await bot.api.sendMessage(chatId, caption, {
+      reply_markup: siteKeyboard(),
+    });
+  }
+}
 
 /** يربط Webhook تيليجرام بعنوان الإنتاج (setWebhook + أوامر البوت) */
 export async function registerProductionWebhook(): Promise<
@@ -242,7 +301,9 @@ export async function notifySubmitterReviewDecision(
         ];
 
   try {
-    await bot.api.sendMessage(chatId, lines.join("\n"));
+    await bot.api.sendMessage(chatId, lines.join("\n"), {
+      reply_markup: siteKeyboard(),
+    });
   } catch (sendError) {
     console.error("notifySubmitterReviewDecision", sendError);
   }
@@ -417,18 +478,29 @@ async function handleCommand(
         await bot.api.sendMessage(chatId, msg);
         return;
       }
-      await bot.api.sendMessage(
-        chatId,
-        "تم ربط حسابك في Gazameel بهذا التليجرام. ستصلك التذكيرات هنا."
-      );
+      await sendBrandedWelcome(bot, chatId, linkedWelcomeText());
       return;
     }
-    await bot.api.sendMessage(chatId, welcomeText());
+
+    let alreadyLinked = false;
+    if (admin) {
+      const { data: linked } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("telegram_chat_id", String(chatId))
+        .maybeSingle();
+      alreadyLinked = !!linked;
+    }
+    await sendBrandedWelcome(
+      bot,
+      chatId,
+      alreadyLinked ? linkedWelcomeText() : startGuideText()
+    );
     return;
   }
 
   if (text.startsWith("/help")) {
-    await bot.api.sendMessage(chatId, welcomeText());
+    await sendBrandedWelcome(bot, chatId, startGuideText());
     return;
   }
 
@@ -488,19 +560,15 @@ async function handleCommand(
     }
     let { data: q } = await admin
       .from("questions")
-      .select("*")
+      .select(
+        "id, question, option_a, option_b, option_c, option_d, daily_eligible"
+      )
       .eq("active", true)
-      .eq("daily_eligible", true)
+      .order("daily_eligible", { ascending: false })
       .limit(20);
 
-    if (!q?.length) {
-      const { data: anyQ } = await admin
-        .from("questions")
-        .select("*")
-        .eq("active", true)
-        .limit(10);
-      q = anyQ;
-    }
+    const eligible = (q || []).filter((row) => row.daily_eligible);
+    if (eligible.length) q = eligible;
 
     if (!q?.length) {
       await bot.api.sendMessage(chatId, "لا أسئلة متاحة اليوم بعد.");
@@ -517,14 +585,37 @@ async function handleCommand(
   );
 }
 
-function welcomeText() {
+function startGuideText() {
+  const origin = getPublicAppUrl();
   return [
-    "مرحبًا بك في بوت Gazameel.",
-    "اربط حسابك من الموقع (/telegram)، أو استخدم الأوامر:",
-    "/countdown — العد التنازلي للمواعيد",
+    "مرحبًا في Gazameel.",
+    "",
+    "اتبع الخطوات بالترتيب:",
+    "",
+    `1) افتح الموقع وسجّل دخول بجوجل:`,
+    `${origin}/login`,
+    "",
+    "2) من الموقع اضغط «تيليجرام» ثم «افتح البوت واربط الحساب».",
+    "   بدون هالخطوة ما توصلك تذكيرات الامتحانات.",
+    "",
+    "3) بعد الربط استخدم البوت:",
+    "/countdown — كم باقي على المواعيد",
     "/daily — سؤال اليوم",
-    "/whoami — عرض chat_id",
-    "/help — هذه القائمة",
+    "/help — هالدليل مرة ثانية",
+    "",
+    "المكتبة والاختبارات والرفع على الموقع، مو هنا.",
+  ].join("\n");
+}
+
+function linkedWelcomeText() {
+  return [
+    "حسابك مربوط. رح توصلك تذكيرات الامتحانات هنا.",
+    "",
+    "الخطوة التالية:",
+    "/countdown — المواعيد القادمة",
+    "/daily — سؤال اليوم",
+    "",
+    "المكتبة والكويز على الموقع من الأزرار تحت.",
   ].join("\n");
 }
 
@@ -640,13 +731,16 @@ export async function broadcastTelegramToChats(
   let sent = 0;
   let failed = 0;
   const unique = [...new Set(chatIds.filter(Boolean))];
+  const CONCURRENCY = 8;
 
-  for (const chatId of unique) {
-    try {
-      await bot.api.sendMessage(chatId, body);
-      sent++;
-    } catch {
-      failed++;
+  for (let i = 0; i < unique.length; i += CONCURRENCY) {
+    const chunk = unique.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      chunk.map((chatId) => bot.api.sendMessage(chatId, body))
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled") sent++;
+      else failed++;
     }
   }
 

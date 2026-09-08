@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/shared/lib/supabase/client";
+import { subscribeClientAuth } from "@/features/auth/client-session";
 import { getAvatarUrl, getDisplayName } from "@/features/auth/user-display";
 import type { User } from "@supabase/supabase-js";
 
@@ -18,27 +18,14 @@ export function WelcomeBanner() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem(STORAGE_KEY) === "1") return;
+
     let cancelled = false;
     let hideTimer: ReturnType<typeof setTimeout> | undefined;
-
-    async function run() {
-      if (typeof window === "undefined") return;
-      if (sessionStorage.getItem(STORAGE_KEY) === "1") return;
-
-      const supabase = createClient();
-      if (!supabase) return;
-
-      const { data } = await supabase.auth.getUser();
-      const u = data.user;
+    const unsub = subscribeClientAuth(({ user: u, profile }) => {
       if (cancelled || !u) return;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, onboarding_done")
-        .eq("id", u.id)
-        .maybeSingle();
-
-      if (cancelled) return;
+      if (sessionStorage.getItem(STORAGE_KEY) === "1") return;
 
       setUser(u);
       setProfileName(profile?.full_name ?? null);
@@ -46,18 +33,17 @@ export function WelcomeBanner() {
       setVisible(true);
       sessionStorage.setItem(STORAGE_KEY, "1");
 
-      // يبقى ظاهرًا أطول إن لزم إكمال التسجيل
       hideTimer = setTimeout(
         () => {
           if (!cancelled) setVisible(false);
         },
         profile?.onboarding_done ? 4500 : 9000
       );
-    }
+    });
 
-    run();
     return () => {
       cancelled = true;
+      unsub();
       if (hideTimer) clearTimeout(hideTimer);
     };
   }, []);

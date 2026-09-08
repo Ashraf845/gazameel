@@ -22,13 +22,29 @@ export type CookieToSet = {
 /** مدة كوكي الجلسة (~400 يوم) — يبقى الدخول بعد إغلاق المتصفح */
 export const AUTH_COOKIE_MAX_AGE = 400 * 24 * 60 * 60;
 
+function runtimeSecureCookies() {
+  if (process.env.VERCEL) return true;
+  if (typeof window !== "undefined") {
+    return window.location.protocol === "https:";
+  }
+  return false;
+}
+
 export const AUTH_COOKIE_OPTIONS = {
   path: "/",
   sameSite: "lax" as const,
   httpOnly: false,
   maxAge: AUTH_COOKIE_MAX_AGE,
-  secure: process.env.NODE_ENV === "production",
+  secure: runtimeSecureCookies(),
 };
+
+/**
+ * أصل OAuth = دومين الطلب نفسه.
+ * لا نستخدم NEXT_PUBLIC_APP_URL هنا حتى لا يروح PKCE cookie لدومين ثاني (مثل localhost على الإنتاج).
+ */
+export function oauthRequestOrigin(requestUrl: URL): string {
+  return requestUrl.origin;
+}
 
 /** يضمن maxAge طويل حتى لا يصير الكوكي session-only ويُحذف عند إغلاق المتصفح */
 export function withPersistentCookieOptions(
@@ -39,6 +55,8 @@ export function withPersistentCookieOptions(
     ...(options ?? {}),
     path: (options?.path as string) || AUTH_COOKIE_OPTIONS.path,
     sameSite: (options?.sameSite as string) || AUTH_COOKIE_OPTIONS.sameSite,
+    httpOnly: false,
+    secure: runtimeSecureCookies(),
     maxAge:
       typeof options?.maxAge === "number"
         ? options.maxAge

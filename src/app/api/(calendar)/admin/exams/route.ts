@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/auth/auth";
 import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supabase/admin";
+import { revalidateCalendar } from "@/shared/lib/revalidate";
 
 export async function POST(request: Request) {
   try {
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
     await admin.from("updates_feed").insert({
       message: `موعد جديد في التقويم: ${title}`,
     });
+
+    revalidateCalendar();
 
     return NextResponse.json({ ok: true });
   } catch (e) {

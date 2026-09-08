@@ -5,6 +5,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
@@ -137,7 +138,201 @@ if (!pollExists) {
   if (!pErr) console.log("أُضيف استطلاع تجريبي");
 }
 
+const { data: adminProfile } = env.ADMIN_EMAIL
+  ? await supabase
+      .from("profiles")
+      .select("id, telegram_chat_id")
+      .eq("email", env.ADMIN_EMAIL)
+      .maybeSingle()
+  : { data: null };
+
+if (
+  adminProfile?.id &&
+  env.ADMIN_TELEGRAM_CHAT_ID &&
+  !adminProfile.telegram_chat_id
+) {
+  const { error: linkErr } = await supabase
+    .from("profiles")
+    .update({ telegram_chat_id: String(env.ADMIN_TELEGRAM_CHAT_ID) })
+    .eq("id", adminProfile.id);
+  if (!linkErr) console.log("رُبط حساب الأدمن بتيليجرام للتذكيرات");
+}
+
+const SAMPLE_EXAMS = [
+  {
+    code: "ENGG1209",
+    title: "تسليم رسم هندسي — تمرين 1",
+    event_type: "assignment",
+    starts_at: "2026-09-21T10:00:00+03:00",
+    notes: "ارفع الملف قبل الموعد من صفحة ساهم.",
+  },
+  {
+    code: "ECOM2402",
+    title: "كويز 1 — مؤشرات ودوال",
+    event_type: "quiz",
+    starts_at: "2026-09-28T11:00:00+03:00",
+    notes: "راجع المؤشرات والمصفوفات.",
+  },
+  {
+    code: "ECOM2311",
+    title: "كويز منطق ومجموعات",
+    event_type: "quiz",
+    starts_at: "2026-10-05T11:00:00+03:00",
+    notes: null,
+  },
+  {
+    code: "QURN3101",
+    title: "كويز تجويد",
+    event_type: "quiz",
+    starts_at: "2026-10-12T08:00:00+03:00",
+    notes: null,
+  },
+  {
+    code: "MATH2341",
+    title: "منتصف الجبر الخطي",
+    event_type: "midterm",
+    starts_at: "2026-10-26T09:00:00+03:00",
+    notes: "المصفوفات والمتجهات.",
+  },
+  {
+    code: "ENGG1305",
+    title: "منتصف الإنجليزية التقنية",
+    event_type: "midterm",
+    starts_at: "2026-11-02T10:00:00+03:00",
+    notes: null,
+  },
+  {
+    code: "ECOM2402",
+    title: "نهائي برمجة حاسوب (2)",
+    event_type: "final",
+    starts_at: "2027-01-11T09:00:00+03:00",
+    notes: "شامل الفصل.",
+  },
+];
+
+let examsInserted = 0;
+for (const exam of SAMPLE_EXAMS) {
+  const courseId = byCode[exam.code];
+  if (!courseId) continue;
+  const { data: existingExam } = await supabase
+    .from("exam_events")
+    .select("id")
+    .eq("course_id", courseId)
+    .eq("title", exam.title)
+    .maybeSingle();
+  if (existingExam) continue;
+  const { error: examErr } = await supabase.from("exam_events").insert({
+    course_id: courseId,
+    title: exam.title,
+    event_type: exam.event_type,
+    starts_at: exam.starts_at,
+    notes: exam.notes,
+    created_by: adminProfile?.id || null,
+  });
+  if (examErr) {
+    console.warn("تخطي موعد:", exam.title, examErr.message);
+    continue;
+  }
+  examsInserted++;
+  await supabase.from("updates_feed").insert({
+    message: `موعد جديد في التقويم: ${exam.title}`,
+  });
+}
+if (examsInserted) console.log(`أُضيف ${examsInserted} موعد للتقويم`);
+
+const sampleTitle = "ملخص تجريبي — برمجة حاسوب (2)";
+const sampleCourseId = byCode.ECOM2402;
+if (sampleCourseId) {
+  const { data: existingRes } = await supabase
+    .from("resources")
+    .select("id")
+    .eq("title", sampleTitle)
+    .eq("course_id", sampleCourseId)
+    .maybeSingle();
+  if (!existingRes) {
+    const storagePath = `approved/${sampleCourseId}/${randomUUID()}.pdf`;
+    const pdf = buildSamplePdf("Gazameel sample — Computer Programming (2)");
+    const { error: upErr } = await supabase.storage
+      .from("resources")
+      .upload(storagePath, pdf, {
+        contentType: "application/pdf",
+        upsert: false,
+      });
+    if (upErr) {
+      console.warn("تخطي ملف تجريبي:", upErr.message);
+    } else {
+      const { data: resource, error: resErr } = await supabase
+        .from("resources")
+        .insert({
+          course_id: sampleCourseId,
+          title: sampleTitle,
+          description: "ملف تجريبي للتحقق من المكتبة والتنزيل.",
+          resource_type: "summary",
+          storage_path: storagePath,
+          mime_type: "application/pdf",
+          file_size: pdf.length,
+          status: "approved",
+          contributor_display_name: "فريق Gazameel",
+          uploaded_by: adminProfile?.id || null,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: adminProfile?.id || null,
+          source_note: "seed",
+        })
+        .select("id")
+        .maybeSingle();
+      if (resErr) {
+        console.warn("تخطي سجل الملف:", resErr.message);
+      } else {
+        console.log("أُضيف ملف تجريبي في المكتبة");
+        await supabase.from("updates_feed").insert({
+          message: `ملف معتمد: ${sampleTitle}`,
+          resource_id: resource?.id || null,
+        });
+      }
+    }
+  }
+}
+
+const token = env.TELEGRAM_BOT_TOKEN;
+const adminChat = env.ADMIN_TELEGRAM_CHAT_ID;
+if (token && adminChat && examsInserted > 0) {
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: adminChat,
+      text: "أُضيفت مواعيد للتقويم. اكتب /countdown لعرض العد التنازلي، أو افتح صفحة التقويم على الموقع.",
+    }),
+  }).catch(() => {});
+}
+
 console.log(`تم: ${inserted} سؤال جديد · تخطي ${skipped}`);
 if (inserted === 0 && skipped === 0) {
   process.exit(1);
+}
+
+function buildSamplePdf(text) {
+  const safe = String(text).replace(/[()\\]/g, " ");
+  const stream = `BT /F1 16 Tf 72 720 Td (${safe}) Tj ET`;
+  const objects = [
+    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n",
+    "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n",
+    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n",
+    `4 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj\n`,
+    "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n",
+  ];
+  let body = "%PDF-1.4\n";
+  const offsets = [0];
+  for (const obj of objects) {
+    offsets.push(body.length);
+    body += obj;
+  }
+  const xrefPos = body.length;
+  let xref = `xref\n0 6\n0000000000 65535 f \n`;
+  for (let i = 1; i <= 5; i++) {
+    xref += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
+  }
+  body += xref;
+  body += `trailer << /Size 6 /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF\n`;
+  return Buffer.from(body, "ascii");
 }

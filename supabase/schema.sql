@@ -287,6 +287,8 @@ create trigger on_auth_user_created
   for each row execute procedure public.handle_new_user();
 
 -- تفعيل RLS (السياسات التفصيلية في rls.sql)
+-- إلزامي: أي جدول جديد يُضاف هنا بسطر enable row level security فور إنشائه،
+-- وإلا بقي مفتوحًا عبر الـ API. تحقّق بعد كل إضافة: supabase/rls-check.sql
 alter table public.profiles enable row level security;
 alter table public.student_courses enable row level security;
 alter table public.courses enable row level security;
@@ -302,4 +304,66 @@ alter table public.telegram_link_tokens enable row level security;
 alter table public.admin_messages enable row level security;
 alter table public.user_message_reads enable row level security;
 
+create index if not exists resources_status_course_idx
+  on public.resources (status, course_id);
+
+create index if not exists resources_course_status_created_idx
+  on public.resources (course_id, status, created_at desc);
+
+create index if not exists resources_uploaded_by_created_idx
+  on public.resources (uploaded_by, created_at desc);
+
+create index if not exists updates_feed_created_idx
+  on public.updates_feed (created_at desc);
+
+create index if not exists exam_events_starts_idx
+  on public.exam_events (starts_at);
+
+create index if not exists questions_course_active_idx
+  on public.questions (course_id, active);
+
+create index if not exists quiz_attempts_user_created_idx
+  on public.quiz_attempts (user_id, created_at desc);
+
+create or replace view public.course_approved_counts
+with (security_invoker = true) as
+select
+  c.code,
+  c.name_ar,
+  c.name_en,
+  c.course_type,
+  count(r.id)::int as approved_count
+from public.courses c
+left join public.resources r
+  on r.course_id = c.id and r.status = 'approved'
+group by c.code, c.name_ar, c.name_en, c.course_type;
+
+create or replace view public.contributor_stats
+with (security_invoker = true) as
+select
+  coalesce(nullif(trim(contributor_display_name), ''), 'مساهم') as name,
+  count(*)::int as file_count
+from public.resources
+where status = 'approved'
+group by 1;
+
+grant select on public.course_approved_counts to anon, authenticated;
+grant select on public.contributor_stats to anon, authenticated;
+
+create or replace view public.admin_dashboard_stats
+with (security_invoker = true) as
+select
+  (select count(*)::int from public.profiles) as users,
+  (select count(*)::int from public.profiles where onboarding_done = true) as onboarded,
+  (select count(*)::int from public.profiles where telegram_chat_id is not null) as telegram,
+  (select count(*)::int from public.profiles where is_admin = true) as admins,
+  (select count(*)::int from public.resources where status = 'pending') as pending,
+  (select count(*)::int from public.resources where status = 'approved') as approved,
+  (select count(*)::int from public.quiz_attempts) as quiz_attempts,
+  (select count(*)::int from public.questions where active = true) as questions,
+  (select count(*)::int from public.exam_events) as exams;
+
+grant select on public.admin_dashboard_stats to service_role;
+
 -- انتهى schema.sql — نفّذ الآن supabase/rls.sql
+-- قاعدة موجودة مسبقًا: نفّذ supabase/upgrade.sql ثم rls.sql

@@ -39,6 +39,9 @@ gazameel-vercel.env.local
 # vercel
 .vercel
 
+# أرشيفات محلية — لا تُرفع للمستودع
+*.zip
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

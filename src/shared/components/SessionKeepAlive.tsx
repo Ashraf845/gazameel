@@ -13,7 +13,6 @@ export function SessionKeepAlive() {
     if (!supabase) return;
 
     void supabase.auth.startAutoRefresh();
-    void supabase.auth.getSession();
 
     const onVisible = () => {
       if (document.visibilityState !== "visible") return;

@@ -41,6 +41,7 @@
     ".next-cssfix",
     ".next-run",
     ".next-verify",
-    ".cursor-tmp"
+    ".cursor-tmp",
+    "**/*.test.ts"
   ]
 }

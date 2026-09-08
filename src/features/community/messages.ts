@@ -9,7 +9,7 @@ export type InboxMessage = {
 };
 
 const SETUP_ERROR =
-  "نفّذ supabase/admin_dashboard.sql في Supabase ثم أعد تحميل الصفحة.";
+  "نفّذ supabase/upgrade.sql ثم rls.sql في Supabase ثم أعد تحميل الصفحة.";
 
 export async function listInboxMessages(
   userId: string
@@ -31,7 +31,8 @@ export async function listInboxMessages(
       supabase
         .from("user_message_reads")
         .select("message_id")
-        .eq("user_id", userId),
+        .eq("user_id", userId)
+        .limit(500),
     ]);
 
   if (error || readsError) {

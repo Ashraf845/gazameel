@@ -1,8 +1,14 @@
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { broadcastTelegramToChats } from "@/features/automations/telegram";
 import { sendBroadcastEmail } from "@/features/admin/email";
+import {
+  emailsForAudience,
+  matchesAudience,
+  type AdminAudience,
+} from "@/features/admin/audience";
 
-export type AdminAudience = "all" | "onboarded" | "telegram";
+export type { AdminAudience };
+export { emailsForAudience, matchesAudience } from "@/features/admin/audience";
 export type AdminMessageKind = "email" | "notification";
 
 export type DashboardStats = {
@@ -58,6 +64,27 @@ async function countEq(
 export async function getDashboardStats(): Promise<DashboardStats | null> {
   const admin = createAdminClient();
   if (!admin) return null;
+
+  const { data, error } = await admin
+    .from("admin_dashboard_stats")
+    .select(
+      "users, onboarded, telegram, admins, pending, approved, quiz_attempts, questions, exams"
+    )
+    .maybeSingle();
+
+  if (!error && data) {
+    return {
+      users: Number(data.users) || 0,
+      onboarded: Number(data.onboarded) || 0,
+      telegram: Number(data.telegram) || 0,
+      admins: Number(data.admins) || 0,
+      pending: Number(data.pending) || 0,
+      approved: Number(data.approved) || 0,
+      quizAttempts: Number(data.quiz_attempts) || 0,
+      questions: Number(data.questions) || 0,
+      exams: Number(data.exams) || 0,
+    };
+  }
 
   const [
     users,
@@ -129,21 +156,6 @@ export async function listAdminMessages(
   return (data || []) as AdminMessageRow[];
 }
 
-function matchesAudience(user: AdminUserRow, audience: AdminAudience) {
-  if (audience === "onboarded") return !!user.onboarding_done;
-  if (audience === "telegram") return !!user.telegram_chat_id;
-  return true;
-}
-
-export function emailsForAudience(
-  users: AdminUserRow[],
-  audience: AdminAudience
-): string[] {
-  return users
-    .filter((u) => matchesAudience(u, audience) && u.email)
-    .map((u) => u.email as string);
-}
-
 export async function createAdminMessage(input: {
   kind: AdminMessageKind;
   title: string;
@@ -194,7 +206,7 @@ export async function createAdminMessage(input: {
     if (/admin_messages|does not exist|schema cache/i.test(errorMessage)) {
       return {
         ok: false,
-        error: "نفّذ supabase/admin_dashboard.sql في SQL Editor ثم أعد المحاولة.",
+        error: "نفّذ supabase/upgrade.sql ثم rls.sql في SQL Editor ثم أعد المحاولة.",
       };
     }
     return { ok: false, error: errorMessage };

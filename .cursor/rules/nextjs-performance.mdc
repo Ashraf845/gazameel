@@ -1,0 +1,13 @@
+---
+description: أداء Next.js في Gazameel — ISR/revalidate، Server Components، next/image، بلا useEffect للجرد الأولي
+alwaysApply: true
+---
+
+# أداء Next.js (Gazameel)
+
+صفحات عامة: `revalidate = 60` لا `force-dynamic`. جلب البيانات في سيرفر كمبوننت. قوائم Supabase بأعمدة محددة + `limit`/`range`. لا `useEffect` للجرد الأولي. لا تكشف `questions.correct` للعميل.
+
+الصور: `next/image` مع `width`/`height`. `'use client'` للأوراق التي تحتاج حالة فقط.
+
+التفاصيل: `.cursor/skills/nextjs-performance/SKILL.md`
+قاعدة البيانات/الفهارس: `.cursor/skills/supabase-performance/SKILL.md`

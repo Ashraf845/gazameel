@@ -2,37 +2,52 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { MORE_NAV, PRIMARY_NAV } from "@/shared/lib/nav";
+import { subscribeClientAuth } from "@/features/auth/client-session";
+import { NavPendingHint } from "@/shared/components/NavPendingHint";
 
-const PRIMARY = [
-  { href: "/", label: "الرئيسية" },
-  { href: "/hub", label: "المكتبة" },
-  { href: "/quiz", label: "اختبارات" },
-  { href: "/upload", label: "رفع ملف", featured: true },
-  { href: "/calendar", label: "التقويم" },
-];
-
-const MORE = [
-  { href: "/polls", label: "استطلاعات" },
-  { href: "/progress", label: "تقدمي" },
-  { href: "/my-submissions", label: "مساهماتي" },
-  { href: "/contributors", label: "مساهمون" },
-  { href: "/telegram", label: "تيليجرام" },
-  { href: "/about", label: "عن المنصة" },
-];
-
-export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
+export function SiteNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    return subscribeClientAuth(({ profile }) => {
+      setIsAdmin(!!profile?.is_admin);
+    });
+  }, []);
 
   function closeMenus() {
     setOpen(false);
     setMoreOpen(false);
   }
 
+  useEffect(() => {
+    setOpen(false);
+    setMoreOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open && !moreOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) closeMenus();
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") closeMenus();
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, moreOpen]);
+
   const extra = isAdmin ? [{ href: "/admin", label: "أدمن" }] : [];
-  const all = [...PRIMARY, ...extra, ...MORE];
+  const all = [...PRIMARY_NAV, ...extra, ...MORE_NAV];
 
   function active(href: string) {
     if (href === "/") return pathname === "/";
@@ -45,7 +60,7 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
     "text-[var(--accent-gold)] bg-[color-mix(in_srgb,var(--accent-gold)_10%,transparent)]";
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" ref={rootRef}>
       <button
         type="button"
         className={`md:hidden text-sm text-[var(--text-secondary)] ${linkBase}`}
@@ -56,7 +71,7 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
       </button>
 
       <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm text-[var(--text-secondary)]">
-        {PRIMARY.map((l) => (
+        {PRIMARY_NAV.map((l) => (
           <Link
             key={l.href}
             href={l.href}
@@ -69,6 +84,7 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
           >
             {l.featured ? <UploadIcon /> : null}
             {l.label}
+            <NavPendingHint />
           </Link>
         ))}
         {extra.map((l) => (
@@ -79,19 +95,22 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
             className={`${linkBase} ${active(l.href) ? linkActive : ""}`}
           >
             {l.label}
+            <NavPendingHint />
           </Link>
         ))}
         <div className="relative">
           <button
             type="button"
             className={linkBase}
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
             onClick={() => setMoreOpen((v) => !v)}
           >
             المزيد
           </button>
           {moreOpen && (
             <div className="absolute left-0 top-full z-50 mt-1 min-w-40 border border-[var(--border)] bg-[var(--bg-surface)] py-1 shadow-lg rounded-[4px]">
-              {MORE.map((l) => (
+              {MORE_NAV.map((l) => (
                 <Link
                   key={l.href}
                   href={l.href}
@@ -99,6 +118,7 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
                   className="block px-3 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--accent-gold)] hover:bg-[color-mix(in_srgb,var(--accent-gold)_8%,transparent)]"
                 >
                   {l.label}
+                  <NavPendingHint />
                 </Link>
               ))}
             </div>
@@ -118,10 +138,13 @@ export function SiteNav({ isAdmin }: { isAdmin: boolean }) {
                   l.href === "/upload"
                     ? "flex items-center gap-2 border border-[var(--accent-gold)] text-[var(--text-primary)]"
                     : ""
-                } ${active(l.href) ? linkActive : ""}`}
+                } ${
+                  active(l.href) ? linkActive : ""
+                }`}
               >
                 {l.href === "/upload" ? <UploadIcon /> : null}
                 {l.label}
+                <NavPendingHint />
               </Link>
             ))}
           </nav>

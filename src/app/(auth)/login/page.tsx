@@ -18,9 +18,16 @@ function destAfterLogin(onboardingDone: boolean, next: string | null) {
   return "/hub";
 }
 
+function nextAfterLogin(searchParams: URLSearchParams) {
+  const next = searchParams.get("next");
+  if (next?.startsWith("/") && !next.startsWith("//")) return next;
+  return "/hub";
+}
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
+  const [starting, setStarting] = useState(false);
   const errorCode = searchParams.get("error");
   const error = errorCode ? ERROR_MESSAGES[errorCode] ?? null : null;
   const detail = searchParams.get("detail");
@@ -56,6 +63,30 @@ function LoginForm() {
     checkExistingSession();
   }, [searchParams]);
 
+  async function startGoogle() {
+    if (starting) return;
+    setStarting(true);
+    const next = nextAfterLogin(searchParams);
+    const fallback = `/api/auth/google?next=${encodeURIComponent(next)}`;
+    try {
+      const supabase = createClient();
+      if (!supabase) {
+        window.location.assign(fallback);
+        return;
+      }
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(next)}`,
+          queryParams: { prompt: "select_account" },
+        },
+      });
+      if (oauthError) window.location.assign(fallback);
+    } catch {
+      window.location.assign(fallback);
+    }
+  }
+
   if (checking) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center text-[var(--text-secondary)]">
@@ -71,22 +102,20 @@ function LoginForm() {
         سجّل بحساب Google ثم أدخل رقمك الجامعي.
       </p>
 
-      <a
-        href={`/api/auth/google?next=${encodeURIComponent(
-          searchParams.get("next")?.startsWith("/")
-            ? searchParams.get("next")!
-            : "/hub"
-        )}`}
-        className="btn-primary block w-full text-center"
+      <button
+        type="button"
+        onClick={startGoogle}
+        disabled={starting}
+        className="btn-primary block w-full text-center disabled:opacity-60"
       >
-        دخول عبر Google
-      </a>
+        {starting ? "جارٍ التحويل إلى Google…" : "دخول عبر Google"}
+      </button>
 
       {error && (
         <div className="mt-4 text-sm text-[#e07a7a] space-y-2">
           <p>{error}</p>
           {detail && (
-            <p className="text-[var(--text-secondary)] text-xs break-all hidden">{detail}</p>
+            <p className="text-[var(--text-secondary)] text-xs break-all">{detail}</p>
           )}
           <p className="text-[var(--text-secondary)] text-xs leading-relaxed">
             إذا ظهر اسمك في الهيدر فأنت مسجّل —{" "}

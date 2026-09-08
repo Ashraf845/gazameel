@@ -1,5 +1,6 @@
 import { createClient } from "@/shared/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getSessionUser } from "@/features/auth/auth";
 import { SupabaseSetupNotice } from "@/shared/components/SupabaseSetupNotice";
 
 export const dynamic = "force-dynamic";
@@ -16,16 +17,15 @@ export default async function MySubmissionsPage() {
     return <SupabaseSetupNotice title="مساهماتي" />;
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login?next=/my-submissions");
 
   const { data: items } = await supabase
     .from("resources")
     .select("id, title, status, rejection_reason, created_at, courses(name_ar)")
     .eq("uploaded_by", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(50);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">

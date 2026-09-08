@@ -6,6 +6,7 @@ import {
   listAdminUsers,
   listAdminMessages,
 } from "@/features/admin/dashboard";
+import { loadCatalogCourses } from "@/features/hub/catalog";
 
 export async function GET() {
   try {
@@ -17,15 +18,17 @@ export async function GET() {
       );
     }
     await requireAdmin();
-    const [stats, users, messages] = await Promise.all([
+    const [stats, users, messages, courses] = await Promise.all([
       getDashboardStats(),
       listAdminUsers(),
       listAdminMessages(),
+      loadCatalogCourses(),
     ]);
     return NextResponse.json({
       stats,
       users,
       messages,
+      courses,
       contact_email: process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "",
     });
   } catch (e) {

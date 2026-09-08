@@ -1,9 +1,38 @@
 /**
- * قائمة مواد ثابتة للواجهة (نفس قيم schema.sql)
- * المصدر: المستوى الثاني — الفصل الأول (18 ساعة معتمدة)
+ * كتالوج المواد للواجهة. المصدر التشغيلي عند ربط قاعدة البيانات هو جدول courses.
+ * هذه القائمة احتياط عند غياب Supabase، ويجب أن تطابق بذرة schema.sql.
  */
 
 export type CourseType = "university" | "college" | "major";
+
+export type CatalogCourse = {
+  code: string;
+  name: string;
+  name_ar: string;
+  name_en?: string;
+  course_type: CourseType;
+};
+
+export function toCatalogCourse(row: {
+  code: string;
+  name_ar: string;
+  name_en?: string | null;
+  course_type?: string | null;
+}): CatalogCourse {
+  const course_type: CourseType =
+    row.course_type === "university" ||
+    row.course_type === "college" ||
+    row.course_type === "major"
+      ? row.course_type
+      : "major";
+  return {
+    code: row.code,
+    name: row.name_ar,
+    name_ar: row.name_ar,
+    name_en: row.name_en ?? undefined,
+    course_type,
+  };
+}
 
 /** يجب أن يطابق semester_key / semester_label_ar في schema.sql */
 export const SEMESTER_KEY = "level2-sem1";

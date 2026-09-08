@@ -39,6 +39,7 @@ drop policy if exists "resources_insert_own" on public.resources;
 drop policy if exists "feed_read" on public.updates_feed;
 drop policy if exists "exams_read" on public.exam_events;
 drop policy if exists "questions_read" on public.questions;
+drop policy if exists "questions_play_select" on public.questions;
 drop policy if exists "quiz_own" on public.quiz_attempts;
 drop policy if exists "quiz_read_own" on public.quiz_attempts;
 drop policy if exists "quiz_insert_own" on public.quiz_attempts;
@@ -54,41 +55,46 @@ drop policy if exists "user_message_reads_insert_own" on public.user_message_rea
 create policy "courses_read_all" on public.courses
   for select using (true);
 
+-- ملاحظة أداء: نغلّف auth.uid() بـ (select auth.uid()) حتى تُحسب
+-- مرة واحدة لكل طلب بدل كل صف (InitPlan) — فرق كبير مع كثرة الصفوف.
+
 -- الملف الشخصي
 create policy "profiles_select_own" on public.profiles
-  for select using (auth.uid() = id);
+  for select using (id = (select auth.uid()));
 
 -- الإدراج: لا تسمح بتعيين is_admin من العميل
 create policy "profiles_upsert_own" on public.profiles
   for insert with check (
-    auth.uid() = id
+    id = (select auth.uid())
     and coalesce(is_admin, false) = false
   );
 
 -- التحديث لصف المستخدم فقط؛ الحقول الحساسة يحميها trigger أدناه
 create policy "profiles_update_own" on public.profiles
   for update
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
+  using (id = (select auth.uid()))
+  with check (id = (select auth.uid()));
 
 -- مواد الطالب المختارة
 create policy "student_courses_own" on public.student_courses
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  for all
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
 
 -- الموارد: approved للجميع؛ المالك يرى ملفاته؛ الأدمن يرى الكل
 create policy "resources_read_approved" on public.resources
   for select using (
     status = 'approved'
-    or uploaded_by = auth.uid()
+    or uploaded_by = (select auth.uid())
     or exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.is_admin = true
+      where p.id = (select auth.uid()) and p.is_admin = true
     )
   );
 
 create policy "resources_insert_own" on public.resources
   for insert with check (
-    auth.uid() = uploaded_by
+    uploaded_by = (select auth.uid())
     and status = 'pending'
   );
 
@@ -98,28 +104,29 @@ create policy "feed_read" on public.updates_feed
 
 -- التقويم: قراءة للمسجّلين
 create policy "exams_read" on public.exam_events
-  for select using (auth.uid() is not null);
+  for select using ((select auth.uid()) is not null);
 
--- أسئلة الكويز
-create policy "questions_read" on public.questions
-  for select using (active = true);
+-- أسئلة الكويز: لا SELECT من العميل (anon/authenticated).
+-- عمود correct يبقى على السيرفر فقط عبر service_role في /api/quiz/*.
+revoke select, insert, update, delete on table public.questions from anon, authenticated;
+grant all on table public.questions to postgres, service_role;
 
 -- محاولات الكويز: قراءة + إدراج فقط (لا تعديل/حذف للنتيجة من العميل)
 create policy "quiz_read_own" on public.quiz_attempts
-  for select using (auth.uid() = user_id);
+  for select using (user_id = (select auth.uid()));
 
 create policy "quiz_insert_own" on public.quiz_attempts
-  for insert with check (auth.uid() = user_id);
+  for insert with check (user_id = (select auth.uid()));
 
 create policy "polls_read" on public.polls
   for select using (active = true);
 
 -- أصوات الاستطلاع: صوت واحد (PK) + لا حذف/تعديل من العميل لإعادة التصويت
 create policy "poll_votes_read_own" on public.poll_votes
-  for select using (auth.uid() = user_id);
+  for select using (user_id = (select auth.uid()));
 
 create policy "poll_votes_insert_own" on public.poll_votes
-  for insert with check (auth.uid() = user_id);
+  for insert with check (user_id = (select auth.uid()));
 
 -- ============================================================
 -- منع تغيير صلاحية الأدمن وربط تيليجرام من العميل.
@@ -151,7 +158,7 @@ create trigger trg_protect_profile_admin
 alter table public.admin_messages enable row level security;
 create policy "admin_messages_read_audience" on public.admin_messages
   for select using (
-    auth.uid() is not null
+    (select auth.uid()) is not null
     and kind = 'notification'
     and (
       audience = 'all'
@@ -159,24 +166,24 @@ create policy "admin_messages_read_audience" on public.admin_messages
         audience = 'onboarded'
         and exists (
           select 1 from public.profiles p
-          where p.id = auth.uid() and p.onboarding_done = true
+          where p.id = (select auth.uid()) and p.onboarding_done = true
         )
       )
       or (
         audience = 'telegram'
         and exists (
           select 1 from public.profiles p
-          where p.id = auth.uid() and p.telegram_chat_id is not null
+          where p.id = (select auth.uid()) and p.telegram_chat_id is not null
         )
       )
     )
   );
 
 create policy "user_message_reads_select_own" on public.user_message_reads
-  for select using (auth.uid() = user_id);
+  for select using (user_id = (select auth.uid()));
 
 create policy "user_message_reads_insert_own" on public.user_message_reads
-  for insert with check (auth.uid() = user_id);
+  for insert with check (user_id = (select auth.uid()));
 
 -- ============================================================
 -- ملاحظة Storage (ليست SQL):
