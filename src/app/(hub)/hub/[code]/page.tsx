@@ -39,7 +39,11 @@ export default async function CourseHubPage({
           pageSize={resources.pageSize}
         />
         <div className="mt-8">
-          <Link href={`/quiz?course=${code}`} className="btn-primary">
+          <Link
+            href={`/quiz?course=${code}`}
+            prefetch
+            className="btn-primary inline-flex cursor-pointer items-center gap-2"
+          >
             اختبر نفسك في هذه المادة
           </Link>
         </div>

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { CatalogCourse } from "@/shared/lib/courses";
 import type { GradedDetail, PlayableQuestion } from "@/features/quiz/quiz";
 
+/** واجهة الاختبار: بدء → إجابات → تسليم مع حالة تحميل حتى لا يبدو الزر ميتًا */
 export function QuizPanel({ courses }: { courses: CatalogCourse[] }) {
   return (
     <Suspense
@@ -30,49 +31,62 @@ function QuizInner({ courses }: { courses: CatalogCourse[] }) {
     detail: GradedDetail[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   async function start() {
+    if (busy) return;
+    setBusy(true);
     setError(null);
     setResult(null);
-    const res = await fetch("/api/quiz/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ course_code: course, count: 10 }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(
-        data.error ||
-          (res.status === 401
-            ? "سجّل الدخول أولًا لبدء الاختبار"
-            : res.status === 503
-              ? "قاعدة البيانات غير مُعدّة — أضف مفاتيح Supabase في .env.local"
-              : "تعذّر بدء الاختبار")
-      );
-      return;
+    try {
+      const res = await fetch("/api/quiz/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ course_code: course, count: 10 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(
+          data.error ||
+            (res.status === 401
+              ? "سجّل الدخول أولًا لبدء الاختبار"
+              : res.status === 503
+                ? "قاعدة البيانات غير مُعدّة — أضف مفاتيح Supabase في .env.local"
+                : "تعذّر بدء الاختبار")
+        );
+        return;
+      }
+      setCourseId(data.course_id);
+      setQuestions(data.questions);
+      setAnswers({});
+    } finally {
+      setBusy(false);
     }
-    setCourseId(data.course_id);
-    setQuestions(data.questions);
-    setAnswers({});
   }
 
   async function submit() {
-    if (!courseId) return;
-    const payload = questions.map((q) => ({
-      question_id: q.id,
-      selected: answers[q.id] || "",
-    }));
-    const res = await fetch("/api/quiz/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ course_id: courseId, answers: payload }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error);
-      return;
+    if (!courseId || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const payload = questions.map((q) => ({
+        question_id: q.id,
+        selected: answers[q.id] || "",
+      }));
+      const res = await fetch("/api/quiz/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ course_id: courseId, answers: payload }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error);
+        return;
+      }
+      setResult(data);
+    } finally {
+      setBusy(false);
     }
-    setResult(data);
   }
 
   return (
@@ -97,8 +111,13 @@ function QuizInner({ courses }: { courses: CatalogCourse[] }) {
               </option>
             ))}
           </select>
-          <button type="button" className="btn-primary" onClick={start}>
-            ابدأ الاختبار
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={start}
+            disabled={busy}
+          >
+            {busy ? "جارٍ التحميل…" : "ابدأ الاختبار"}
           </button>
           <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
             يلزم تسجيل الدخول. إذا لا أسئلة بعد، شغّل{" "}
@@ -127,7 +146,7 @@ function QuizInner({ courses }: { courses: CatalogCourse[] }) {
                 return (
                   <label
                     key={opt}
-                    className="flex items-center gap-2 text-sm text-[var(--text-primary)]"
+                    className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-primary)]"
                   >
                     <input
                       type="radio"
@@ -143,8 +162,13 @@ function QuizInner({ courses }: { courses: CatalogCourse[] }) {
               })}
             </div>
           ))}
-          <button type="button" className="btn-primary" onClick={submit}>
-            تسليم وتصحيح
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={submit}
+            disabled={busy}
+          >
+            {busy ? "جارٍ التصحيح…" : "تسليم وتصحيح"}
           </button>
         </div>
       )}

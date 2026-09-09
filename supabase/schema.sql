@@ -104,7 +104,7 @@ create table if not exists public.resources (
   title text not null,
   description text,
   resource_type text not null default 'summary'
-    check (resource_type in ('summary', 'past_exam', 'video', 'image', 'other')),
+    check (resource_type in ('summary', 'past_exam', 'book', 'assignment', 'video', 'image', 'other')),
   storage_path text,
   mime_type text,
   file_size bigint,
@@ -119,6 +119,21 @@ create table if not exists public.resources (
   reviewed_at timestamptz,
   reviewed_by uuid references public.profiles(id)
 );
+
+-- ترتيب العرض في المكتبة: فيديو → ملخص → كتاب → تكليف…
+alter table public.resources
+  add column if not exists type_rank int
+  generated always as (
+    case resource_type
+      when 'video' then 1
+      when 'summary' then 2
+      when 'book' then 3
+      when 'assignment' then 4
+      when 'past_exam' then 5
+      when 'image' then 6
+      else 7
+    end
+  ) stored;
 
 -- آخر التحديثات (الصفحة الرئيسية)
 create table if not exists public.updates_feed (
@@ -309,6 +324,9 @@ create index if not exists resources_status_course_idx
 
 create index if not exists resources_course_status_created_idx
   on public.resources (course_id, status, created_at desc);
+
+create index if not exists resources_course_status_type_rank_idx
+  on public.resources (course_id, status, type_rank, created_at desc);
 
 create index if not exists resources_uploaded_by_created_idx
   on public.resources (uploaded_by, created_at desc);

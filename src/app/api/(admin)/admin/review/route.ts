@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/auth/auth";
 import { reviewResource } from "@/features/moderation/moderation";
 import { notifySubmitterReviewDecision } from "@/features/automations/telegram";
+import { runAfterResponse } from "@/shared/lib/background";
 
 export async function POST(request: Request) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 409 });
     }
-    await notifySubmitterReviewDecision(id, action, reason);
+    runAfterResponse(() => notifySubmitterReviewDecision(id, action, reason));
     return NextResponse.json({ ok: true, status: result.resource?.status });
   } catch (err) {
     if (err instanceof Response) return err;

@@ -22,5 +22,9 @@ create index if not exists telegram_link_tokens_expires_idx
 
 -- بدون سياسات لـ authenticated: الوصول فقط عبر service_role من السيرفر
 alter table public.telegram_link_tokens enable row level security;
+drop policy if exists "Users can insert their own link tokens" on public.telegram_link_tokens;
+drop policy if exists "Users can view their own link tokens" on public.telegram_link_tokens;
+revoke all on table public.telegram_link_tokens from anon, authenticated;
+grant all on table public.telegram_link_tokens to postgres, service_role;
 
 -- انتهى — أعد فتح /telegram لإنشاء رابط الربط

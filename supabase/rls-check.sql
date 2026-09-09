@@ -15,13 +15,14 @@ where n.nspname = 'public'
   and not c.relrowsecurity
 order by 1;
 
--- 2) جداول عليها RLS بلا أي سياسة، ومع ذلك ممنوحة للعميل
---    (RLS بلا سياسة يمنع كل شيء — إن كان مقصودًا فتجاهله،
---     وإلا فالجدول معطّل عمليًا على العميل)
+-- 2) جداول عليها RLS بلا سياسة، وما زالت ممنوحة للعميل
+--    (RLS بلا سياسة يمنع الصفوف، لكن GRANT زائد — اسحبه)
 select
   c.relname as table_name,
   has_table_privilege('anon', c.oid, 'SELECT') as anon_select,
-  has_table_privilege('authenticated', c.oid, 'SELECT') as auth_select
+  has_table_privilege('authenticated', c.oid, 'SELECT') as auth_select,
+  'revoke all on table public.' || c.relname
+    || ' from anon, authenticated;' as fix
 from pg_class c
 join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public'
@@ -29,6 +30,10 @@ where n.nspname = 'public'
   and c.relrowsecurity
   and not exists (
     select 1 from pg_policy p where p.polrelid = c.oid
+  )
+  and (
+    has_table_privilege('anon', c.oid, 'SELECT')
+    or has_table_privilege('authenticated', c.oid, 'SELECT')
   )
 order by 1;
 

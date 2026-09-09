@@ -100,12 +100,25 @@ export const COURSES = [
 export const COURSE_OPTIONS = COURSES;
 
 export const RESOURCE_TYPES = [
-  { value: "summary", label: "ملخص" },
-  { value: "past_exam", label: "أسئلة سنوات" },
   { value: "video", label: "فيديو (رابط)" },
+  { value: "summary", label: "ملخص" },
+  { value: "book", label: "كتاب" },
+  { value: "assignment", label: "تكليف" },
+  { value: "past_exam", label: "أسئلة سنوات" },
   { value: "image", label: "صورة" },
   { value: "other", label: "أخرى" },
 ] as const;
+
+/** ترتيب العرض في المكتبة: فيديو ثم ملخص ثم كتاب ثم تكليف… */
+export const RESOURCE_TYPE_RANK: Record<string, number> = {
+  video: 1,
+  summary: 2,
+  book: 3,
+  assignment: 4,
+  past_exam: 5,
+  image: 6,
+  other: 7,
+};
 
 export type ResourceTypeValue = (typeof RESOURCE_TYPES)[number]["value"];
 

@@ -10,6 +10,8 @@ export type ResourceStatus = "pending" | "approved" | "rejected";
 export type ResourceType =
   | "summary"
   | "past_exam"
+  | "book"
+  | "assignment"
   | "video"
   | "image"
   | "other";

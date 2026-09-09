@@ -137,7 +137,7 @@ export async function listApprovedResources(
   if (!admin) return empty;
 
   const from = (safePage - 1) * pageSize;
-  const { data, count } = await admin
+  let query = admin
     .from("resources")
     .select(
       "id, title, resource_type, contributor_display_name, external_url, courses!inner(code, name_ar)",
@@ -145,8 +145,46 @@ export async function listApprovedResources(
     )
     .eq("status", "approved")
     .eq("courses.code", code)
+    .order("type_rank", { ascending: true })
     .order("created_at", { ascending: false })
     .range(from, from + pageSize - 1);
+
+  let { data, count, error } = await query;
+
+  // إن لم يُنفَّذ upgrade بعد (لا عمود type_rank) — نرتّب في الذاكرة
+  if (error && /type_rank/i.test(error.message)) {
+    const fallback = await admin
+      .from("resources")
+      .select(
+        "id, title, resource_type, contributor_display_name, external_url, courses!inner(code, name_ar)",
+        { count: "exact" }
+      )
+      .eq("status", "approved")
+      .eq("courses.code", code)
+      .order("created_at", { ascending: false })
+      .range(0, 199);
+    const rank: Record<string, number> = {
+      video: 1,
+      summary: 2,
+      book: 3,
+      assignment: 4,
+      past_exam: 5,
+      image: 6,
+      other: 7,
+    };
+    const sorted = [...(fallback.data || [])].sort((a, b) => {
+      const ra = rank[a.resource_type] ?? 9;
+      const rb = rank[b.resource_type] ?? 9;
+      return ra - rb;
+    });
+    data = sorted.slice(from, from + pageSize);
+    count = fallback.count;
+    error = null;
+  }
+
+  if (error) {
+    return empty;
+  }
 
   const rows = data || [];
   const courseName = courseEmbedName(

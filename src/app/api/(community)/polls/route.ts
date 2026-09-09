@@ -42,13 +42,54 @@ export async function POST(request: Request) {
           .maybeSingle();
         course_id = c?.id ?? null;
       }
+      const question = String(body.question || "").trim();
+      if (!question || !Array.isArray(body.options) || body.options.length < 2) {
+        return NextResponse.json(
+          { error: "السؤال وخياران على الأقل مطلوبان" },
+          { status: 400 }
+        );
+      }
+      // منع تكرار نفس السؤال وهو نشط (مثل «كيف الموقع»)
+      const { data: dup } = await admin
+        .from("polls")
+        .select("id")
+        .eq("active", true)
+        .ilike("question", question)
+        .maybeSingle();
+      if (dup) {
+        return NextResponse.json(
+          { error: "يوجد استطلاع نشط بنفس السؤال — أوقفه أولًا أو غيّر النص" },
+          { status: 409 }
+        );
+      }
       const { error } = await admin.from("polls").insert({
-        question: body.question,
+        question,
         options: body.options,
         course_id,
         created_by: profile?.id,
         active: true,
       });
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === "deactivate") {
+      await requireAdmin();
+      const admin = createAdminClient();
+      if (!admin) {
+        return NextResponse.json(
+          { error: SUPABASE_UNCONFIGURED_AR },
+          { status: 503 }
+        );
+      }
+      const pollId = String(body.poll_id || "");
+      if (!pollId) {
+        return NextResponse.json({ error: "معرّف الاستطلاع مطلوب" }, { status: 400 });
+      }
+      const { error } = await admin
+        .from("polls")
+        .update({ active: false })
+        .eq("id", pollId);
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ ok: true });
     }

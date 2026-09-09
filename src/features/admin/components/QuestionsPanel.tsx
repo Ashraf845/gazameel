@@ -83,8 +83,16 @@ export function QuestionsPanel({ courses }: { courses: CatalogCourse[] }) {
       <form className="card-soft space-y-3 p-5" onSubmit={importCsv}>
         <h2 className="font-semibold text-[var(--text-primary)]">استيراد CSV</h2>
         <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
-          الأعمدة: course_code,topic,question,option_a,option_b,option_c,option_d,correct,explanation
-          — استخدم رموز المواد الحقيقية (مثل ECOM2402). عيّنة جاهزة:{" "}
+          <strong className="text-[var(--text-primary)]">ما هو؟</strong> ملف
+          Excel/نص يرفع عشرات أسئلة الكويز دفعة واحدة بدل إدخال سؤال بسؤال.
+          صف واحد = سؤال واحد. العمود{" "}
+          <code className="text-[var(--text-primary)]">correct</code> يكون A أو B
+          أو C أو D، و<code className="text-[var(--text-primary)]">course_code</code>{" "}
+          مثل ECOM2402.
+          <br />
+          الأعمدة بالترتيب:
+          course_code,topic,question,option_a,option_b,option_c,option_d,correct,explanation
+          — عيّنة جاهزة:{" "}
           <a
             href="/sample-questions.csv"
             className="text-[var(--accent-gold)] underline"

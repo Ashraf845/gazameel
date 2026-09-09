@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { DownloadButton } from "@/features/hub/components/DownloadButton";
 import type { ApprovedResource } from "@/features/hub/catalog";
+import { RESOURCE_TYPES } from "@/shared/lib/courses";
+
+function typeLabel(value: string) {
+  return RESOURCE_TYPES.find((t) => t.value === value)?.label || value;
+}
 
 export function CourseResources({
   configured,
@@ -46,7 +51,7 @@ export function CourseResources({
             <div>
               <div className="font-medium text-[var(--text-primary)]">{r.title}</div>
               <div className="mt-1 text-xs text-[var(--text-secondary)]">
-                {r.resource_type}
+                {typeLabel(r.resource_type)}
                 {r.contributor_display_name
                   ? ` · بواسطة ${r.contributor_display_name}`
                   : ""}
@@ -62,7 +67,7 @@ export function CourseResources({
                 فتح الرابط
               </a>
             ) : (
-              <DownloadButton resourceId={r.id} />
+              <DownloadButton resourceId={r.id} title={r.title} />
             )}
           </li>
         ))}

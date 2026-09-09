@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/shared/lib/supabase/admin";
 import { revalidatePublicContent } from "@/shared/lib/revalidate";
+import { resolveContributorDisplayName } from "@/shared/lib/contributor-name";
 
 export type ReviewAction = "approve" | "reject";
 
@@ -47,11 +48,17 @@ export async function reviewResource(
       // إن فشل النقل نُبقي المسار القديم ونُكمل الاعتماد
     }
 
+    // اسم الظهور: أشرف → فريق Gazameel؛ غيرهم كما هم
+    const displayName = resolveContributorDisplayName(
+      resource.contributor_display_name
+    );
+
     const { data: updated, error: updErr } = await admin
       .from("resources")
       .update({
         status: "approved",
         storage_path: nextPath,
+        contributor_display_name: displayName,
         reviewed_at: new Date().toISOString(),
         reviewed_by: opts?.reviewerId ?? null,
       })
@@ -66,9 +73,8 @@ export async function reviewResource(
       return { ok: false as const, error: "تمت مراجعة هذا الملف مسبقًا" };
     }
 
-    const who = resource.contributor_display_name || "طالب";
     await admin.from("updates_feed").insert({
-      message: `تم إضافة «${resource.title}» بواسطة ${who}`,
+      message: `تم إضافة «${resource.title}» بواسطة ${displayName}`,
       resource_id: resourceId,
     });
 
@@ -79,7 +85,12 @@ export async function reviewResource(
 
     return {
       ok: true as const,
-      resource: { ...resource, status: "approved", storage_path: nextPath },
+      resource: {
+        ...resource,
+        status: "approved",
+        storage_path: nextPath,
+        contributor_display_name: displayName,
+      },
     };
   }
 
@@ -109,12 +120,18 @@ export async function reviewResource(
   return { ok: true as const, resource: { ...resource, status: "rejected" } };
 }
 
-export async function createSignedUrl(storagePath: string, expiresIn = 600) {
+/** رابط موقّت؛ downloadName يجبر المتصفح على حفظ الملف بدل فتحه */
+export async function createSignedUrl(
+  storagePath: string,
+  expiresIn = 600,
+  downloadName?: string
+) {
   const admin = createAdminClient();
   if (!admin) throw new Error("قاعدة البيانات غير مُعدّة");
+  const options = downloadName ? { download: downloadName } : undefined;
   const { data, error } = await admin.storage
     .from("resources")
-    .createSignedUrl(storagePath, expiresIn);
+    .createSignedUrl(storagePath, expiresIn, options);
   if (error) throw error;
   return data.signedUrl;
 }

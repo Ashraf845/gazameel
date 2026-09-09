@@ -654,7 +654,8 @@ async function sendDailyQuestion(
   );
 }
 
-/** تذكيرات مجدولة — يُستدعى من cron API */
+/** تذكيرات مجدولة — يُستدعى من cron يوميًا (Hobby: مرة/يوم)
+ * النوافذ بالأيام (±½ يوم) تناسب cron يومي؛ نافذة «يوم الامتحان» بدل 2 ساعة. */
 export async function sendExamReminders() {
   const bot = getBot();
   if (!bot) return { sent: 0, reason: "no_bot" as const };
@@ -662,11 +663,12 @@ export async function sendExamReminders() {
   const admin = createAdminClient();
   if (!admin) return { sent: 0, reason: "no_db" as const };
   const now = Date.now();
-  const windows = [
-    { label: "7d", ms: 7 * 24 * 60 * 60 * 1000 },
-    { label: "3d", ms: 3 * 24 * 60 * 60 * 1000 },
-    { label: "1d", ms: 24 * 60 * 60 * 1000 },
-    { label: "2h", ms: 2 * 60 * 60 * 1000 },
+  // نوافذ بالأيام: فرق الأيام من الموعد ≈ الهدف ضمن ±0.5 يوم
+  const dayWindows = [
+    { label: "7d", days: 7 },
+    { label: "3d", days: 3 },
+    { label: "1d", days: 1 },
+    { label: "day", days: 0 }, // صباح يوم الامتحان
   ];
 
   const { data: events } = await admin
@@ -677,9 +679,15 @@ export async function sendExamReminders() {
   let sent = 0;
   for (const ev of events || []) {
     const start = new Date(ev.starts_at).getTime();
-    for (const w of windows) {
-      const diff = start - now;
-      if (Math.abs(diff - w.ms) > 30 * 60 * 1000) continue;
+    if (start < now) continue;
+    const daysLeft = (start - now) / (1000 * 60 * 60 * 24);
+
+    for (const w of dayWindows) {
+      const inWindow =
+        w.days === 0
+          ? daysLeft >= 0 && daysLeft < 1
+          : Math.abs(daysLeft - w.days) <= 0.5;
+      if (!inWindow) continue;
 
       const { data: existing } = await admin
         .from("reminder_log")
@@ -695,7 +703,20 @@ export async function sendExamReminders() {
         .eq("course_id", ev.course_id);
 
       const course = (ev.courses as { name_ar?: string } | null)?.name_ar ?? "";
-      const msg = `تذكير (${w.label}): ${ev.title} — ${course}\nالموعد: ${new Date(ev.starts_at).toLocaleString("ar")}`;
+      const when = new Date(ev.starts_at).toLocaleString("ar", {
+        timeZone: "Asia/Gaza",
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+      const windowAr =
+        w.label === "7d"
+          ? "قبل أسبوع"
+          : w.label === "3d"
+            ? "قبل 3 أيام"
+            : w.label === "1d"
+              ? "قبل يوم"
+              : "اليوم";
+      const msg = `تذكير (${windowAr}): ${ev.title} — ${course}\nالموعد: ${when}`;
 
       for (const row of students || []) {
         const tg = (row.profiles as { telegram_chat_id?: string } | null)

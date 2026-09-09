@@ -130,6 +130,71 @@ drop policy if exists "questions_read" on public.questions;
 revoke select, insert, update, delete on table public.questions from anon, authenticated;
 grant all on table public.questions to postgres, service_role;
 
+-- سياسات قديمة على توكن الربط كانت تستخدم auth.uid() لكل صف.
+-- الجدول للسيرفر فقط — لا سياسات للعميل.
+drop policy if exists "Users can insert their own link tokens" on public.telegram_link_tokens;
+drop policy if exists "Users can view their own link tokens" on public.telegram_link_tokens;
+revoke all on table public.telegram_link_tokens from anon, authenticated;
+grant all on table public.telegram_link_tokens to postgres, service_role;
+
+revoke all on table public.reminder_log from anon, authenticated;
+grant all on table public.reminder_log to postgres, service_role;
+
+-- نوع مورد: كتاب + تكليف + ترتيب العرض
+alter table public.resources drop constraint if exists resources_resource_type_check;
+alter table public.resources
+  add constraint resources_resource_type_check
+  check (resource_type in ('summary', 'past_exam', 'book', 'assignment', 'video', 'image', 'other'));
+
+alter table public.resources drop column if exists type_rank;
+alter table public.resources
+  add column type_rank int
+  generated always as (
+    case resource_type
+      when 'video' then 1
+      when 'summary' then 2
+      when 'book' then 3
+      when 'assignment' then 4
+      when 'past_exam' then 5
+      when 'image' then 6
+      else 7
+    end
+  ) stored;
+
+create index if not exists resources_course_status_type_rank_idx
+  on public.resources (course_id, status, type_rank, created_at desc);
+
+-- إخفاء استطلاعات مكررة بنفس نص السؤال (يبقي الأقدم نشطًا)
+update public.polls p
+set active = false
+where p.active = true
+  and exists (
+    select 1
+    from public.polls older
+    where older.active = true
+      and older.id <> p.id
+      and older.created_at < p.created_at
+      and lower(trim(older.question)) = lower(trim(p.question))
+  );
+
+-- توحيد اسم نشر أشرف إلى فريق Gazameel في الصفوف القديمة
+update public.resources
+set contributor_display_name = 'فريق Gazameel'
+where contributor_display_name is not null
+  and (
+    (contributor_display_name ilike '%أشرف%' and contributor_display_name ilike '%حبيب%')
+    or (contributor_display_name ilike '%اشرف%' and contributor_display_name ilike '%حبيب%')
+    or (contributor_display_name ilike '%ashraf%' and contributor_display_name ilike '%habib%')
+  );
+
+update public.updates_feed
+set message = replace(message, 'أشرف محمد حبيب', 'فريق Gazameel')
+where message like '%أشرف محمد حبيب%';
+
+update public.updates_feed
+set message = replace(message, 'اشرف محمد حبيب', 'فريق Gazameel')
+where message like '%اشرف محمد حبيب%';
+
 -- بعد هذا الملف: نفّذ supabase/rls.sql لتطبيق سياسات الصفوف كاملة.
 -- مهم للأداء: rls.sql يغلّف auth.uid() بـ (select auth.uid()) حتى تُحسب
 -- مرة لكل طلب بدل كل صف — بدون ذلك تبقى القراءة بطيئة مهما أضفت فهارس.

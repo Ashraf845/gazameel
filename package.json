@@ -10,7 +10,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/features/quiz/quiz.test.ts src/features/calendar/labels.test.ts src/features/admin/dashboard.test.ts src/features/community/polls.test.ts src/shared/lib/courses.test.ts",
+    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/features/quiz/quiz.test.ts src/features/calendar/labels.test.ts src/features/admin/dashboard.test.ts src/features/community/polls.test.ts src/shared/lib/courses.test.ts src/shared/lib/contributor-name.test.ts",
     "telegram:webhook": "node scripts/telegram-webhook.mjs",
     "telegram:webhook:set": "node scripts/telegram-webhook.mjs set",
     "telegram:webhook:info": "node scripts/telegram-webhook.mjs info",

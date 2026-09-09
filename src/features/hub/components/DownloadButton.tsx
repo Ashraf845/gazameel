@@ -1,12 +1,19 @@
 "use client";
 
+/**
+ * يطلب Signed URL ثم ينزّل الملف.
+ * على Safari لا نجلب Blob عبر fetch (قيود CORS) — نوجّه مباشرة لرابط التوقيع
+ * مع Content-Disposition: attachment من Supabase.
+ */
 import { useState } from "react";
 
-/**
- * يطلب Signed URL من السيرفر ثم يفتحه في تبويب جديد.
- * المسار: GET /api/resources/[id]/download
- */
-export function DownloadButton({ resourceId }: { resourceId: string }) {
+export function DownloadButton({
+  resourceId,
+  title,
+}: {
+  resourceId: string;
+  title?: string;
+}) {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,8 +33,28 @@ export function DownloadButton({ resourceId }: { resourceId: string }) {
         }
         return;
       }
-      if (data.url) window.open(data.url, "_blank");
-      else setErr("لم يُرجع السيرفر رابطًا");
+      if (!data.url) {
+        setErr("لم يُرجع السيرفر رابطًا");
+        return;
+      }
+
+      if (data.type === "external") {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      const filename =
+        data.filename ||
+        `${(title || "gazameel").replace(/[\\/:*?"<>|]+/g, "_")}.pdf`;
+
+      // رابط موقّع مع download= — يعمل على Chrome وSafari بدون fetch Blob
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch {
       setErr("فشل الاتصال بالخادم");
     } finally {
@@ -43,9 +70,11 @@ export function DownloadButton({ resourceId }: { resourceId: string }) {
         className="btn-primary text-sm"
         disabled={loading}
       >
-        {loading ? "…" : "معاينة / تنزيل"}
+        {loading ? "جارٍ التنزيل…" : "تنزيل الملف"}
       </button>
-      {err && <p className="text-xs text-[#e07a7a] mt-1 max-w-[14rem]">{err}</p>}
+      {err && (
+        <p className="mt-1 max-w-[14rem] text-xs text-[#e07a7a]">{err}</p>
+      )}
     </div>
   );
 }

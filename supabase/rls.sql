@@ -50,6 +50,8 @@ drop policy if exists "poll_votes_insert_own" on public.poll_votes;
 drop policy if exists "admin_messages_read_audience" on public.admin_messages;
 drop policy if exists "user_message_reads_select_own" on public.user_message_reads;
 drop policy if exists "user_message_reads_insert_own" on public.user_message_reads;
+drop policy if exists "Users can insert their own link tokens" on public.telegram_link_tokens;
+drop policy if exists "Users can view their own link tokens" on public.telegram_link_tokens;
 
 -- المواد: الجميع يقرأ قائمة الفصل
 create policy "courses_read_all" on public.courses
@@ -152,8 +154,12 @@ create trigger trg_protect_profile_admin
   before update on public.profiles
   for each row execute procedure public.protect_profile_admin_flag();
 
--- telegram_link_tokens: بدون سياسات للـ authenticated —
--- الوصول فقط عبر service_role من السيرفر (إنشاء/استهلاك التوكن)
+-- telegram_link_tokens / reminder_log: بدون سياسات للعميل —
+-- الوصول فقط عبر service_role من السيرفر
+revoke all on table public.telegram_link_tokens from anon, authenticated;
+grant all on table public.telegram_link_tokens to postgres, service_role;
+revoke all on table public.reminder_log from anon, authenticated;
+grant all on table public.reminder_log to postgres, service_role;
 
 alter table public.admin_messages enable row level security;
 create policy "admin_messages_read_audience" on public.admin_messages

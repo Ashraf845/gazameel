@@ -4,9 +4,11 @@ import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supaba
 import { validateUploadFile, sniffMime, extForMime } from "@/features/upload/files";
 import { isAllowedResourceType } from "@/shared/lib/courses";
 import { revalidatePublicContent } from "@/shared/lib/revalidate";
+import { resolveContributorDisplayName } from "@/shared/lib/contributor-name";
+import { runAfterResponse } from "@/shared/lib/background";
 import { randomUUID } from "crypto";
 
-/** رفع أدمن مباشر → approved فورًا */
+/** رفع أدمن مباشر → approved فورًا (ملف واحد لكل طلب؛ الواجهة ترفع عدة ملفات بالتتابع) */
 export async function POST(request: Request) {
   try {
     const profile = await requireAdmin();
@@ -71,6 +73,12 @@ export async function POST(request: Request) {
       }
     }
 
+    // أشرف → فريق Gazameel؛ باقي الأدمن بأسمائهم
+    const publisher = resolveContributorDisplayName(
+      profile.full_name,
+      "فريق Gazameel"
+    );
+
     const { data: resource, error } = await admin
       .from("resources")
       .insert({
@@ -82,7 +90,7 @@ export async function POST(request: Request) {
         mime_type,
         file_size,
         status: "approved",
-        contributor_display_name: profile.full_name || "الأدمن",
+        contributor_display_name: publisher,
         uploaded_by: profile.id,
         reviewed_at: new Date().toISOString(),
         reviewed_by: profile.id,
@@ -95,11 +103,14 @@ export async function POST(request: Request) {
     }
 
     await admin.from("updates_feed").insert({
-      message: `تم إضافة «${title}» بواسطة الإدارة`,
+      message: `تم إضافة «${title}» بواسطة ${publisher}`,
       resource_id: resource.id,
     });
 
-    revalidatePublicContent(courseCode);
+    // إعادة التحقق بعد الرد حتى لا يعلق زر «نشر»
+    runAfterResponse(async () => {
+      revalidatePublicContent(courseCode);
+    });
 
     return NextResponse.json({ ok: true, id: resource.id });
   } catch (e) {

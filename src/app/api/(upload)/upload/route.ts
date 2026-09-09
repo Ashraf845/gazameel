@@ -5,6 +5,7 @@ import { validateUploadFile, sniffMime, extForMime } from "@/features/upload/fil
 import { MAX_PENDING_PER_USER } from "@/shared/lib/constants";
 import { notifyAdminNewSubmission } from "@/features/automations/telegram";
 import { runAfterResponse } from "@/shared/lib/background";
+import { resolveContributorDisplayName } from "@/shared/lib/contributor-name";
 import { randomUUID } from "crypto";
 import { isAllowedResourceType } from "@/shared/lib/courses";
 
@@ -100,7 +101,9 @@ export async function POST(request: Request) {
         mime_type: file!.type,
         file_size: file!.size,
         status: "pending",
-        contributor_display_name: contributor || profile.full_name,
+        contributor_display_name: resolveContributorDisplayName(
+          contributor || profile.full_name
+        ),
         uploaded_by: user.id,
       })
       .select("id")

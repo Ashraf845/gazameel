@@ -25,7 +25,7 @@ export async function GET(
     }
     const { data: resource } = await admin
       .from("resources")
-      .select("id, status, storage_path, uploaded_by, external_url")
+      .select("id, status, storage_path, uploaded_by, external_url, title, mime_type")
       .eq("id", id)
       .maybeSingle();
 
@@ -50,8 +50,16 @@ export async function GET(
       return NextResponse.json({ error: "لا ملف" }, { status: 404 });
     }
 
-    const url = await createSignedUrl(resource.storage_path, 600);
-    return NextResponse.json({ url, type: "signed" });
+    const ext =
+      String(resource.storage_path).split(".").pop() ||
+      (resource.mime_type?.includes("pdf") ? "pdf" : "bin");
+    const safeTitle = String(resource.title || "gazameel")
+      .replace(/[\\/:*?"<>|]+/g, "_")
+      .slice(0, 80);
+    const filename = `${safeTitle}.${ext}`;
+    // downloadName يضيف Content-Disposition: attachment على الرابط الموقّع
+    const url = await createSignedUrl(resource.storage_path, 600, filename);
+    return NextResponse.json({ url, type: "signed", filename });
   } catch (e) {
     if (e instanceof Response) return e;
     return NextResponse.json({ error: "خطأ" }, { status: 500 });

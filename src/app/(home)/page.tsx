@@ -92,7 +92,7 @@ export default async function HomePage() {
             {TAGLINE_EN}
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/hub" className="cta-button">
+            <Link href="/hub" className="cta-button" prefetch>
               ادخل المكتبة
             </Link>
             <HeroLoginLink />
@@ -192,7 +192,7 @@ function Feature({
   return (
     <Link
       href={href}
-      className="flex flex-col items-center p-8 text-center transition hover:bg-[color-mix(in_srgb,var(--accent-gold)_5%,transparent)]"
+      className="flex cursor-pointer flex-col items-center p-8 text-center transition hover:bg-[color-mix(in_srgb,var(--accent-gold)_5%,transparent)]"
     >
       <FeatureIcon name={icon} />
       <div className="brand-rule mb-4" />
