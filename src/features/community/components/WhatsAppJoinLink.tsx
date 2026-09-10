@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * روابط مجموعات واتساب — تظهر فقط بعد إكمال التسجيل.
+ * روابط قناة واتساب — تظهر فقط بعد إكمال التسجيل.
  */
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -64,7 +64,7 @@ export function WhatsAppJoinLink({
       href={state === "guest" ? `/login?next=${encodeURIComponent(next)}` : next}
       className={className}
     >
-      {state === "guest" ? "سجّل الدخول للانضمام" : "أكمل التسجيل للانضمام"}
+      {state === "guest" ? "سجّل الدخول للمتابعة" : "أكمل التسجيل للمتابعة"}
     </Link>
   );
 }

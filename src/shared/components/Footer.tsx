@@ -57,7 +57,7 @@ export function Footer() {
             {hasWhatsapp ? (
               <li>
                 <WhatsAppJoinLink href={whatsapp!} className={linkClass}>
-                  واتساب
+                  قناة واتساب
                 </WhatsAppJoinLink>
               </li>
             ) : null}

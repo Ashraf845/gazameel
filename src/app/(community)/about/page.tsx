@@ -26,14 +26,14 @@ export default function AboutPage() {
         <p className="mt-2">{DISCLAIMER_AR}</p>
       </div>
       <div className="card-soft p-5 text-sm space-y-2">
-        <h2 className="font-semibold text-[var(--accent-gold)]">مجتمع واتساب</h2>
+        <h2 className="font-semibold text-[var(--accent-gold)]">قناة واتساب</h2>
         <p className="text-[var(--text-secondary)]">
-          للإعلانات السريعة والنقاش اليومي بين الطلاب (بدون أتمتة API في الـ MVP).
-          الانضمام بعد إكمال التسجيل فقط.
+          للإعلانات السريعة ومتابعة التحديثات (بدون أتمتة API في الـ MVP).
+          المتابعة بعد إكمال التسجيل فقط.
         </p>
         {hasWhatsapp ? (
           <WhatsAppJoinLink href={whatsapp!} className="btn-primary inline-block">
-            انضم لمجموعة واتساب
+            تابع قناة واتساب
           </WhatsAppJoinLink>
         ) : (
           <p className="text-[var(--text-secondary)] text-xs leading-relaxed">
