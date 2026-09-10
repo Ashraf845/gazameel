@@ -29,6 +29,38 @@ export function SubmissionActions({
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  async function onRename() {
+    if (busy) return;
+    const next = window.prompt("العنوان الجديد:", title);
+    if (next == null) return;
+    const trimmed = next.trim();
+    if (!trimmed) {
+      setErr("العنوان مطلوب");
+      return;
+    }
+    if (trimmed === title) return;
+    setBusy(true);
+    setMsg(null);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/resources/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (!res.ok) {
+        setErr(await readApiError(res, "فشل تعديل الاسم"));
+        return;
+      }
+      setMsg("تم تعديل الاسم");
+      onDone();
+    } catch {
+      setErr("فشل الاتصال");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onDelete() {
     if (busy) return;
     if (!window.confirm(`حذف «${title}» نهائيًا؟`)) return;
@@ -142,6 +174,14 @@ export function SubmissionActions({
   return (
     <div className="mt-3 space-y-2">
       <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="cursor-pointer rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-primary)] disabled:opacity-50"
+          disabled={busy}
+          onClick={() => void onRename()}
+        >
+          تعديل الاسم
+        </button>
         <button
           type="button"
           className="cursor-pointer rounded-lg border border-[#e07a7a]/50 px-3 py-1.5 text-sm text-[#e07a7a] disabled:opacity-50"

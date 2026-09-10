@@ -56,6 +56,38 @@ export function ManagedResourcesPanel({
     return () => window.clearTimeout(t);
   }, [load]);
 
+  async function onRename(item: Item) {
+    if (busyId) return;
+    const next = window.prompt("العنوان الجديد:", item.title);
+    if (next == null) return;
+    const trimmed = next.trim();
+    if (!trimmed) {
+      setErr("العنوان مطلوب");
+      return;
+    }
+    if (trimmed === item.title) return;
+    setBusyId(item.id);
+    setMsg(null);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/resources/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      });
+      if (!res.ok) {
+        setErr(await readApiError(res, "فشل تعديل الاسم"));
+        return;
+      }
+      setMsg(`تم تعديل الاسم: ${trimmed}`);
+      await load();
+    } catch {
+      setErr("فشل الاتصال");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function onDelete(item: Item) {
     if (busyId) return;
     if (!window.confirm(`حذف «${item.title}» من المكتبة نهائيًا؟`)) return;
@@ -170,8 +202,8 @@ export function ManagedResourcesPanel({
   return (
     <div className="card-soft space-y-4 p-5">
       <p className="text-sm text-[var(--text-secondary)]">
-        احذف ملفًا منشورًا أو استبدله بملف جديد دون إعادة رفع كمساهمة جديدة.
-        الاستبدال من الأدمن يبقى منشورًا فورًا.
+        عدّل اسم الملف، أو احذفه، أو استبدله بملف جديد دون إعادة رفع كمساهمة
+        جديدة. الاستبدال من الأدمن يبقى منشورًا فورًا.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <select
@@ -218,6 +250,14 @@ export function ManagedResourcesPanel({
               {item.resource_type}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="cursor-pointer rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-primary)] disabled:opacity-50"
+                disabled={busyId === item.id}
+                onClick={() => void onRename(item)}
+              >
+                تعديل الاسم
+              </button>
               <button
                 type="button"
                 className="cursor-pointer rounded-lg border border-[#e07a7a]/50 px-3 py-1.5 text-sm text-[#e07a7a] disabled:opacity-50"

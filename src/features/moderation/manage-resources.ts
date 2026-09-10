@@ -64,6 +64,48 @@ export async function deleteManagedResource(resourceId: string, actor: Actor) {
   return { ok: true as const };
 }
 
+/** تعديل عنوان الملف فقط — يبقى بنفس الحالة */
+export async function renameManagedResource(
+  resourceId: string,
+  actor: Actor,
+  title: string
+) {
+  const { admin, resource, error } = await loadResource(resourceId);
+  if (!admin) return { ok: false as const, error: error || SUPABASE_UNCONFIGURED_AR, status: 503 };
+  if (!resource) return { ok: false as const, error: error || "الملف غير موجود", status: 404 };
+  if (!canManage(resource, actor)) {
+    return { ok: false as const, error: "غير مصرّح بتعديل هذا الملف", status: 403 };
+  }
+
+  const next = title.trim();
+  if (!next) {
+    return { ok: false as const, error: "العنوان مطلوب", status: 400 };
+  }
+  if (next.length > 200) {
+    return { ok: false as const, error: "العنوان طويل جدًا", status: 400 };
+  }
+  if (next === resource.title) {
+    return { ok: true as const, title: next };
+  }
+
+  const { error: updErr } = await admin
+    .from("resources")
+    .update({ title: next })
+    .eq("id", resourceId);
+
+  if (updErr) {
+    return { ok: false as const, error: updErr.message, status: 500 };
+  }
+
+  if (resource.status === "approved") {
+    revalidatePublicContent(
+      (resource.courses as { code?: string } | null)?.code
+    );
+  }
+
+  return { ok: true as const, title: next };
+}
+
 /** تجهيز رابط رفع لاستبدال ملف موجود */
 export async function prepareReplaceResource(
   resourceId: string,
