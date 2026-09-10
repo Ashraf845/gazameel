@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { isSupabaseFullyConfigured } from "@/shared/lib/supabase/config";
 import { SupabaseSetupBanner } from "@/shared/components/SupabaseSetupNotice";
+import { DataPreviewNotice } from "@/shared/components/DataPreviewNotice";
 import { ExamEventsList } from "@/features/calendar/components/ExamEventsList";
 import { listExamEvents } from "@/features/calendar/events";
 
@@ -20,6 +21,10 @@ export default async function CalendarPage() {
         <p className="mb-2 text-sm text-[var(--text-secondary)]">
           المواعيد تُضاف من لوحة الأدمن فقط — مصدر واحد موثوق.
         </p>
+        <DataPreviewNotice>
+          التقويم ما زال تجريبيًا والمواعيد غير مكتملة بعد — سيتم تحديثها أولًا
+          بأول حتى تكتمل البيانات.
+        </DataPreviewNotice>
         <p className="mb-8 text-sm">
           <Link href="/countdown" className="text-[var(--accent-gold)]">
             العد التنازلي للمواعيد القادمة

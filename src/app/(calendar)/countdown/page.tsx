@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { isSupabaseFullyConfigured } from "@/shared/lib/supabase/config";
 import { SupabaseSetupBanner } from "@/shared/components/SupabaseSetupNotice";
+import { DataPreviewNotice } from "@/shared/components/DataPreviewNotice";
 import { ExamEventsList } from "@/features/calendar/components/ExamEventsList";
 import { listExamEvents } from "@/features/calendar/events";
 
@@ -22,6 +23,10 @@ export default async function CountdownPage() {
         <p className="mb-2 text-sm text-[var(--text-secondary)]">
           نفس مواعيد التقويم — للبوت استخدم /countdown في تيليجرام.
         </p>
+        <DataPreviewNotice>
+          العد التنازلي يعتمد على التقويم التجريبي — المواعيد غير مكتملة بعد
+          وسيتم تحديثها حتى تكتمل البيانات.
+        </DataPreviewNotice>
         <p className="mb-8 text-sm">
           <Link href="/calendar" className="text-[var(--accent-gold)]">
             عرض التقويم كاملًا

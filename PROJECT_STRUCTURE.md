@@ -72,6 +72,7 @@ gazameel/
 - `NavigationLoader.tsx` / `PageLoading.tsx` / `NavPendingHint.tsx` — تحميل حيوي عند الانتقال
 - `Footer.tsx`, `WelcomeBanner.tsx`, `SessionKeepAlive.tsx`, `ThemeToggle.tsx`
 - `SupabaseSetupNotice.tsx` — تنبيه عند غياب الإعداد
+- `DataPreviewNotice.tsx` — تنويه بيانات تجريبية (كويز / تقويم)
 
 ### مكتبات مشتركة (`shared/lib`)
 

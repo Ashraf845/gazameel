@@ -2,6 +2,7 @@ import { createClient } from "@/shared/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/features/auth/auth";
 import { SupabaseSetupNotice } from "@/shared/components/SupabaseSetupNotice";
+import { DataPreviewNotice } from "@/shared/components/DataPreviewNotice";
 import { listUserAttempts, summarizeAttempts } from "@/features/quiz/quiz";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +22,12 @@ export default async function ProgressPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-12">
       <h1 className="mb-2 text-3xl font-bold text-[var(--text-primary)]">تقدمي</h1>
-      <p className="mb-8 text-sm text-[var(--text-secondary)]">
+      <p className="mb-4 text-sm text-[var(--text-secondary)]">
         ملخص نتائج اختباراتك لكل مادة.
       </p>
+      <DataPreviewNotice>
+        نتائج الاختبارات مبنية على أسئلة تجريبية قد تتغير مع اكتمال بنك الأسئلة.
+      </DataPreviewNotice>
       {!byCourse.length && (
         <p className="text-sm text-[var(--text-secondary)]">
           ابدأ اختبارًا من /quiz لترى تقدمك.

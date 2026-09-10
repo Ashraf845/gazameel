@@ -8,6 +8,7 @@ import {
   type GradedDetail,
   type PlayableQuestion,
 } from "@/features/quiz/grading";
+import { DataPreviewNotice } from "@/shared/components/DataPreviewNotice";
 
 /** واجهة الاختبار: مادة → فصل → سؤال واحد بمؤقت دقيقة */
 export function QuizPanel({ courses }: { courses: CatalogCourse[] }) {
@@ -194,9 +195,13 @@ function QuizInner({ courses }: { courses: CatalogCourse[] }) {
       <h1 className="mb-2 text-3xl font-bold text-[var(--text-primary)]">
         اختبار تفاعلي
       </h1>
-      <p className="mb-6 text-sm text-[var(--text-secondary)]">
+      <p className="mb-4 text-sm text-[var(--text-secondary)]">
         اختر المادة ثم الفصل (الشابتر). كل سؤال لمدة دقيقة واحدة.
       </p>
+      <DataPreviewNotice>
+        أسئلة الاختبارات ما زالت تجريبية وقد لا تغطي الكتاب كاملًا — نحدّثها
+        تدريجيًا حتى تكتمل البيانات.
+      </DataPreviewNotice>
 
       {!inQuiz && !result && (
         <div className="card-soft space-y-4 p-5">
