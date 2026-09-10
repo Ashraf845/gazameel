@@ -195,13 +195,19 @@ update public.updates_feed
 set message = replace(message, 'اشرف محمد حبيب', 'فريق Gazameel')
 where message like '%اشرف محمد حبيب%';
 
--- مواد إضافية للكتالوج
+-- مواد الكتالوج (رموز الجامعة الرسمية) + تصحيح رموز خاطئة سابقة إن وُجدت
+update public.courses set code = 'ECOM2306' where code = 'ECOM2302';
+update public.courses set code = 'ECOM1401' where code = 'ECOM2401';
+update public.courses set code = 'MATH2301' where code = 'MATH2303';
+update public.courses set code = 'MATH2302' where code = 'MATH3301';
+update public.courses set code = 'QURN4102' where code = 'QURN4101';
+
 insert into public.courses (code, name_ar, name_en, course_type, semester_key, semester_label_ar, credit_hours) values
-  ('ECOM2302', 'إلكترونيات (2)', 'Electronics (2)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
-  ('ECOM2401', 'برمجة حاسوب (1)', 'Computer Programming (1)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 4),
-  ('MATH2303', 'كالكولاس (C)', 'Calculus (C)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
-  ('MATH3301', 'معادلات تفاضلية عادية', 'Ordinary Differential Equations', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
-  ('QURN4101', 'قرآن كريم (4)', 'Holy Quran (4)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1)
+  ('ECOM1401', 'برمجة حاسوب (1)', 'Computer Programming (1)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 4),
+  ('ECOM2306', 'إلكترونيات (2)', 'Electronics (2)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('MATH2301', 'كالكولاس (C)', 'Calculus (C)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('MATH2302', 'معادلات تفاضلية عادية', 'Ordinary Differential Equations', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('QURN4102', 'قرآن كريم (4)', 'Holy Quran (4)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1)
 on conflict (code) do update set
   name_ar = excluded.name_ar,
   name_en = excluded.name_en,

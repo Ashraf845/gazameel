@@ -53,7 +53,14 @@ export const COURSES = [
     course_type: "university" as const,
   },
   {
-    code: "ECOM2302",
+    code: "ECOM1401",
+    name: "برمجة حاسوب (1)",
+    name_ar: "برمجة حاسوب (1)",
+    name_en: "Computer Programming (1)",
+    course_type: "major" as const,
+  },
+  {
+    code: "ECOM2306",
     name: "إلكترونيات (2)",
     name_ar: "إلكترونيات (2)",
     name_en: "Electronics (2)",
@@ -64,13 +71,6 @@ export const COURSES = [
     name: "رياضيات متقطعة",
     name_ar: "رياضيات متقطعة",
     name_en: "Discrete Mathematics",
-    course_type: "major" as const,
-  },
-  {
-    code: "ECOM2401",
-    name: "برمجة حاسوب (1)",
-    name_ar: "برمجة حاسوب (1)",
-    name_en: "Computer Programming (1)",
     course_type: "major" as const,
   },
   {
@@ -95,10 +95,17 @@ export const COURSES = [
     course_type: "college" as const,
   },
   {
-    code: "MATH2303",
+    code: "MATH2301",
     name: "كالكولاس (C)",
     name_ar: "كالكولاس (C)",
     name_en: "Calculus (C)",
+    course_type: "major" as const,
+  },
+  {
+    code: "MATH2302",
+    name: "معادلات تفاضلية عادية",
+    name_ar: "معادلات تفاضلية عادية",
+    name_en: "Ordinary Differential Equations",
     course_type: "major" as const,
   },
   {
@@ -109,13 +116,6 @@ export const COURSES = [
     course_type: "major" as const,
   },
   {
-    code: "MATH3301",
-    name: "معادلات تفاضلية عادية",
-    name_ar: "معادلات تفاضلية عادية",
-    name_en: "Ordinary Differential Equations",
-    course_type: "major" as const,
-  },
-  {
     code: "QURN3101",
     name: "قرآن كريم (3)",
     name_ar: "قرآن كريم (3)",
@@ -123,7 +123,7 @@ export const COURSES = [
     course_type: "university" as const,
   },
   {
-    code: "QURN4101",
+    code: "QURN4102",
     name: "قرآن كريم (4)",
     name_ar: "قرآن كريم (4)",
     name_en: "Holy Quran (4)",
