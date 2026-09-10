@@ -53,10 +53,24 @@ export const COURSES = [
     course_type: "university" as const,
   },
   {
+    code: "ECOM2302",
+    name: "إلكترونيات (2)",
+    name_ar: "إلكترونيات (2)",
+    name_en: "Electronics (2)",
+    course_type: "major" as const,
+  },
+  {
     code: "ECOM2311",
     name: "رياضيات متقطعة",
     name_ar: "رياضيات متقطعة",
     name_en: "Discrete Mathematics",
+    course_type: "major" as const,
+  },
+  {
+    code: "ECOM2401",
+    name: "برمجة حاسوب (1)",
+    name_ar: "برمجة حاسوب (1)",
+    name_en: "Computer Programming (1)",
     course_type: "major" as const,
   },
   {
@@ -81,6 +95,13 @@ export const COURSES = [
     course_type: "college" as const,
   },
   {
+    code: "MATH2303",
+    name: "كالكولاس (C)",
+    name_ar: "كالكولاس (C)",
+    name_en: "Calculus (C)",
+    course_type: "major" as const,
+  },
+  {
     code: "MATH2341",
     name: "جبر خطي",
     name_ar: "جبر خطي",
@@ -88,10 +109,24 @@ export const COURSES = [
     course_type: "major" as const,
   },
   {
+    code: "MATH3301",
+    name: "معادلات تفاضلية عادية",
+    name_ar: "معادلات تفاضلية عادية",
+    name_en: "Ordinary Differential Equations",
+    course_type: "major" as const,
+  },
+  {
     code: "QURN3101",
     name: "قرآن كريم (3)",
     name_ar: "قرآن كريم (3)",
     name_en: "Holy Quran (3)",
+    course_type: "university" as const,
+  },
+  {
+    code: "QURN4101",
+    name: "قرآن كريم (4)",
+    name_ar: "قرآن كريم (4)",
+    name_en: "Holy Quran (4)",
     course_type: "university" as const,
   },
 ] as const;

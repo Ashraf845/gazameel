@@ -195,6 +195,21 @@ update public.updates_feed
 set message = replace(message, 'اشرف محمد حبيب', 'فريق Gazameel')
 where message like '%اشرف محمد حبيب%';
 
+-- مواد إضافية للكتالوج
+insert into public.courses (code, name_ar, name_en, course_type, semester_key, semester_label_ar, credit_hours) values
+  ('ECOM2302', 'إلكترونيات (2)', 'Electronics (2)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('ECOM2401', 'برمجة حاسوب (1)', 'Computer Programming (1)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 4),
+  ('MATH2303', 'كالكولاس (C)', 'Calculus (C)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('MATH3301', 'معادلات تفاضلية عادية', 'Ordinary Differential Equations', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('QURN4101', 'قرآن كريم (4)', 'Holy Quran (4)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1)
+on conflict (code) do update set
+  name_ar = excluded.name_ar,
+  name_en = excluded.name_en,
+  course_type = excluded.course_type,
+  semester_key = excluded.semester_key,
+  semester_label_ar = excluded.semester_label_ar,
+  credit_hours = excluded.credit_hours;
+
 -- بعد هذا الملف: نفّذ supabase/rls.sql لتطبيق سياسات الصفوف كاملة.
 -- مهم للأداء: rls.sql يغلّف auth.uid() بـ (select auth.uid()) حتى تُحسب
 -- مرة لكل طلب بدل كل صف — بدون ذلك تبقى القراءة بطيئة مهما أضفت فهارس.

@@ -260,16 +260,21 @@ create index if not exists user_message_reads_user_idx
   on public.user_message_reads (user_id, read_at desc);
 
 -- ------------------------------------------------------------
--- بذرة مواد الفصل: المستوى الثاني — الفصل الأول (18 ساعة)
+-- بذرة مواد الفصل (كتالوج المنصة)
 -- ------------------------------------------------------------
 insert into public.courses (code, name_ar, name_en, course_type, semester_key, semester_label_ar, credit_hours) values
   ('ARAB1202', 'اللغة العربية (نحو وصرف)', 'Arabic Language (Grammar and Morphology)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 2),
+  ('ECOM2302', 'إلكترونيات (2)', 'Electronics (2)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
   ('ECOM2311', 'رياضيات متقطعة', 'Discrete Mathematics', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('ECOM2401', 'برمجة حاسوب (1)', 'Computer Programming (1)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 4),
   ('ECOM2402', 'برمجة حاسوب (2)', 'Computer Programming (2)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 4),
   ('ENGG1209', 'رسم هندسي بالحاسوب', 'Computer-Aided Engineering Drawing', 'college', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 2),
   ('ENGG1305', 'لغة إنجليزية تقنية', 'Technical English', 'college', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('MATH2303', 'كالكولاس (C)', 'Calculus (C)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
   ('MATH2341', 'جبر خطي', 'Linear Algebra', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
-  ('QURN3101', 'قرآن كريم (3)', 'Holy Quran (3)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1)
+  ('MATH3301', 'معادلات تفاضلية عادية', 'Ordinary Differential Equations', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('QURN3101', 'قرآن كريم (3)', 'Holy Quran (3)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1),
+  ('QURN4101', 'قرآن كريم (4)', 'Holy Quran (4)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1)
 on conflict (code) do update set
   name_ar = excluded.name_ar,
   name_en = excluded.name_en,
