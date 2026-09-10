@@ -207,6 +207,7 @@ insert into public.courses (code, name_ar, name_en, course_type, semester_key, s
   ('ECOM2306', 'إلكترونيات (2)', 'Electronics (2)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
   ('MATH2301', 'كالكولاس (C)', 'Calculus (C)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
   ('MATH2302', 'معادلات تفاضلية عادية', 'Ordinary Differential Equations', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('NURS4201', 'الإسعافات الأولية', 'First Aid', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 2),
   ('QURN4102', 'قرآن كريم (4)', 'Holy Quran (4)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1)
 on conflict (code) do update set
   name_ar = excluded.name_ar,
@@ -215,6 +216,29 @@ on conflict (code) do update set
   semester_key = excluded.semester_key,
   semester_label_ar = excluded.semester_label_ar,
   credit_hours = excluded.credit_hours;
+
+-- أسئلة الكويز: عمود الفصل (اختبار لكل شابتر لا الكتاب كاملًا)
+alter table public.questions
+  add column if not exists chapter smallint;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'questions_chapter_check'
+  ) then
+    alter table public.questions
+      add constraint questions_chapter_check
+      check (chapter is null or chapter >= 1);
+  end if;
+end $$;
+
+create index if not exists questions_course_chapter_active_idx
+  on public.questions (course_id, chapter, active)
+  where active = true;
+
+-- أسئلة قديمة بلا فصل → اعتبرها الفصل 1 حتى تظهر في الاختبار
+update public.questions set chapter = 1 where chapter is null;
 
 -- بعد هذا الملف: نفّذ supabase/rls.sql لتطبيق سياسات الصفوف كاملة.
 -- مهم للأداء: rls.sql يغلّف auth.uid() بـ (select auth.uid()) حتى تُحسب

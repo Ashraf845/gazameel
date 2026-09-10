@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSessionUser, getProfile } from "@/features/auth/auth";
+import { requireOnboarded } from "@/features/auth/auth";
 import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supabase/admin";
 import { createSignedUrl } from "@/features/moderation/moderation";
 
-/** رابط تنزيل موقّت للملفات المعتمدة (أو معاينة أدمن لأي حالة) */
+/** رابط تنزيل موقّت — بعد إكمال التسجيل فقط (أو أدمن / صاحب الملف) */
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getSessionUser();
-    if (!user) {
-      return NextResponse.json({ error: "سجّل الدخول" }, { status: 401 });
-    }
+    const profile = await requireOnboarded();
 
     const { id } = await context.params;
     const admin = createAdminClient();
@@ -33,11 +30,10 @@ export async function GET(
       return NextResponse.json({ error: "غير موجود" }, { status: 404 });
     }
 
-    const profile = await getProfile();
     const allowed =
       resource.status === "approved" ||
-      profile?.is_admin ||
-      resource.uploaded_by === user.id;
+      profile.is_admin ||
+      resource.uploaded_by === profile.id;
 
     if (!allowed) {
       return NextResponse.json({ error: "غير مصرّح" }, { status: 403 });

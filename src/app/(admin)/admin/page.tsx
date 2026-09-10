@@ -8,6 +8,7 @@ import { UsersMailPanel } from "@/features/admin/components/UsersMailPanel";
 import { NotificationsPanel } from "@/features/admin/components/NotificationsPanel";
 import { QueuePanel } from "@/features/admin/components/QueuePanel";
 import { DirectUploadPanel } from "@/features/admin/components/DirectUploadPanel";
+import { ManagedResourcesPanel } from "@/features/admin/components/ManagedResourcesPanel";
 import { ExamsPanel } from "@/features/admin/components/ExamsPanel";
 import { QuestionsPanel } from "@/features/admin/components/QuestionsPanel";
 import { PollsAdminPanel } from "@/features/admin/components/PollsAdminPanel";
@@ -23,6 +24,7 @@ type Tab =
   | "notify"
   | "queue"
   | "upload"
+  | "manage"
   | "exams"
   | "questions"
   | "polls";
@@ -121,6 +123,7 @@ export default function AdminPage() {
             ["notify", "الإشعارات"],
             ["queue", "طابور المساهمات"],
             ["upload", "رفع مباشر"],
+            ["manage", "ملفات منشورة"],
             ["exams", "مواعيد"],
             ["questions", "أسئلة"],
             ["polls", "استطلاعات"],
@@ -153,7 +156,20 @@ export default function AdminPage() {
         <NotificationsPanel messages={messages} onSent={loadDashboard} />
       )}
       {tab === "queue" && <QueuePanel dbReady={!configHint} />}
-      {tab === "upload" && <DirectUploadPanel courses={courses} />}
+      {tab === "upload" && (
+        <div className="space-y-8">
+          <DirectUploadPanel courses={courses} />
+          <div>
+            <h2 className="mb-3 text-lg font-semibold text-[var(--text-primary)]">
+              ملفات منشورة — حذف واستبدال
+            </h2>
+            <ManagedResourcesPanel courses={courses} dbReady={!configHint} />
+          </div>
+        </div>
+      )}
+      {tab === "manage" && (
+        <ManagedResourcesPanel courses={courses} dbReady={!configHint} />
+      )}
       {tab === "exams" && <ExamsPanel courses={courses} />}
       {tab === "questions" && <QuestionsPanel courses={courses} />}
       {tab === "polls" && <PollsAdminPanel courses={courses} />}

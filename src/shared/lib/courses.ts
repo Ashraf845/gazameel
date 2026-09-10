@@ -116,6 +116,13 @@ export const COURSES = [
     course_type: "major" as const,
   },
   {
+    code: "NURS4201",
+    name: "الإسعافات الأولية",
+    name_ar: "الإسعافات الأولية",
+    name_en: "First Aid",
+    course_type: "university" as const,
+  },
+  {
     code: "QURN3101",
     name: "قرآن كريم (3)",
     name_ar: "قرآن كريم (3)",

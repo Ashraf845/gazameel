@@ -1,4 +1,4 @@
-import { getSessionUser } from "@/features/auth/auth";
+import { getProfile, getSessionUser } from "@/features/auth/auth";
 import { createTelegramLinkToken } from "@/features/automations/telegram";
 import { redirect } from "next/navigation";
 import { createClient } from "@/shared/lib/supabase/server";
@@ -15,6 +15,11 @@ export default async function TelegramLinkPage() {
 
   const user = await getSessionUser();
   if (!user) redirect("/login?next=/telegram");
+
+  const profileAuth = await getProfile();
+  if (!profileAuth?.onboarding_done && !profileAuth?.is_admin) {
+    redirect("/onboarding?next=/telegram");
+  }
 
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.trim();
   const botReady = !isMissingOrPlaceholder(botUsername);

@@ -1,3 +1,6 @@
+/** مدة كل سؤال بالثواني */
+export const QUESTION_SECONDS = 60;
+
 export type PlayableQuestion = {
   id: string;
   question: string;

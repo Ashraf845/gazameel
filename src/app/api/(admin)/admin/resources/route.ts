@@ -6,6 +6,28 @@ import { resolveContributorDisplayName } from "@/shared/lib/contributor-name";
 import { isAllowedResourceType } from "@/shared/lib/courses";
 import { revalidatePublicContent } from "@/shared/lib/revalidate";
 import { runAfterResponse } from "@/shared/lib/background";
+import { listApprovedResources } from "@/features/moderation/manage-resources";
+
+/** قائمة الملفات المعتمدة (للحذف/الاستبدال) */
+export async function GET(request: Request) {
+  try {
+    await requireAdmin();
+    const { searchParams } = new URL(request.url);
+    const course = searchParams.get("course") || undefined;
+    const result = await listApprovedResources({ courseCode: course });
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.error },
+        { status: result.status }
+      );
+    }
+    return NextResponse.json({ items: result.items });
+  } catch (e) {
+    if (e instanceof Response) return e;
+    const msg = e instanceof Error ? e.message : "خطأ";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
 
 /**
  * أدمن:

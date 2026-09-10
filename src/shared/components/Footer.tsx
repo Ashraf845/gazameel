@@ -1,3 +1,7 @@
+"use client";
+
+import { WhatsAppJoinLink } from "@/features/community/components/WhatsAppJoinLink";
+
 /**
  * تذييل الموقع — تصفح + قائمة المزيد (نفس روابط الشريط العلوي)
  */
@@ -52,14 +56,9 @@ export function Footer() {
             ))}
             {hasWhatsapp ? (
               <li>
-                <a
-                  href={whatsapp}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={linkClass}
-                >
+                <WhatsAppJoinLink href={whatsapp!} className={linkClass}>
                   واتساب
-                </a>
+                </WhatsAppJoinLink>
               </li>
             ) : null}
           </ul>

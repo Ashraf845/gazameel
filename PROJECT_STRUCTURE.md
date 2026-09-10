@@ -51,12 +51,12 @@ gazameel/
 |---------|--------------|---------------------|-------------------|
 | `auth` | `auth.ts`, `client-session.ts`, `user-display.ts`, `HeroLoginLink.tsx` | `(auth)/login`, `onboarding`, `auth/*` | `(auth)/auth/*`, `onboarding` |
 | `hub` | `catalog.ts`, `updates.ts` + `DownloadButton`, `UpdatesFeed`, `HubCourseGrid`, `CourseResources` | `(hub)/hub`, `hub/[code]` | `(hub)/resources/[id]/download` |
-| `upload` | `files.ts`, `direct.ts` | `(upload)/upload`, `my-submissions` | `(upload)/upload/prepare` + `complete` |
-| `moderation` | `moderation.ts` | — (يُستدعى من admin + telegram) | عبر `(admin)/admin/review|submissions` |
-| `quiz` | `quiz.ts`, `grading.ts`, `components/QuizPanel` | `(quiz)/quiz`, `progress` | `(quiz)/quiz/*`, `(quiz)/admin/questions` |
+| `upload` | `files.ts`, `direct.ts` + `SubmissionActions` / `MySubmissionsList` | `(upload)/upload`, `my-submissions` | `(upload)/upload/prepare` + `complete`، `(upload)/resources/[id]` حذف، `.../replace` استبدال |
+| `moderation` | `moderation.ts`، `manage-resources.ts` (حذف/استبدال منشور) | — (يُستدعى من admin + telegram + مساهماتي) | عبر `(admin)/admin/review|submissions` + مسارات resources أعلاه |
+| `quiz` | `quiz.ts`, `grading.ts`, `QuizPanel` — اختبار **لكل فصل** + مؤقت دقيقة للسؤال | `(quiz)/quiz`, `progress` | `(quiz)/quiz/chapters` + `start` + `submit`، `(quiz)/admin/questions` |
 | `calendar` | `events.ts`, `labels.ts`, `components/ExamEventsList` | `(calendar)/calendar`, `countdown` | `(calendar)/calendar/events` + عبر `(admin)/admin/exams` |
-| `admin` | `dashboard.ts`, `email.ts` + مكوّنات الإحصائيات/البريد/الإشعارات/الطابور/الأسئلة | `(admin)/admin` | `(admin)/admin/review|submissions|resources|dashboard|messages` |
-| `community` | صندوق الرسائل + `contributors.ts` + `polls.ts` + صفحات المجتمع | `(community)/polls|contributors|about|telegram|inbox` | `(community)/polls|messages` |
+| `admin` | `dashboard.ts`, `email.ts` + مكوّنات الإحصائيات/البريد/الإشعارات/الطابور/الرفع/`ManagedResourcesPanel`/الأسئلة | `(admin)/admin` | `(admin)/admin/review|submissions|resources|dashboard|messages` |
+| `community` | صندوق الرسائل + `contributors.ts` + `polls.ts` + `WhatsAppJoinLink` (بعد إكمال التسجيل) | `(community)/polls|contributors|about|telegram|inbox` | `(community)/polls|messages` |
 | `automations` | `telegram.ts` | — | `(automations)/telegram/webhook`, `cron/reminders` |
 | — | — | `(home)/page.tsx` → `/` | — |
 
@@ -102,10 +102,10 @@ gazameel/
 
 | المجال | المسارات العامة | المنطق |
 |--------|-----------------|--------|
-| رفع ومراجعة | `/api/upload/prepare` + `/complete`, `/api/admin/review`, `/api/admin/submissions`, `/api/admin/resources`, `/api/resources/[id]/download` | `features/upload`, `features/moderation` |
+| رفع ومراجعة | `/api/upload/prepare` + `/complete`, `/api/admin/review`, `/api/admin/submissions`, `/api/admin/resources`, `/api/resources/[id]/download`، `DELETE /api/resources/[id]`، `/api/resources/[id]/replace` | `features/upload`, `features/moderation` |
 | لوحة التحكم | `/api/admin/dashboard`, `/api/admin/messages` | `features/admin/dashboard` |
 | صندوق المستخدم | `/api/messages` | `features/community/messages` |
-| كويز | `/api/quiz/start`, `/api/quiz/submit`, `/api/admin/questions` | `features/quiz/quiz.ts` |
+| كويز | `/api/quiz/chapters`, `/api/quiz/start` (course + chapter)، `/api/quiz/submit`، `/api/admin/questions` | `features/quiz` — عمود `questions.chapter` |
 | مواعيد | `/api/calendar/events`, `/api/admin/exams` | `exam_events` |
 | استطلاعات | `/api/polls` | polls / poll_votes |
 | Onboarding | `/api/onboarding` | profiles, student_courses |
@@ -149,7 +149,7 @@ gazameel/
 | `admin_dashboard_stats` | واجهة: أعداد لوحة الأدمن في صف واحد (service role) |
 | `contributor_stats` | واجهة تجميع المساهمين |
 | `exam_events` | مواعيد الاختبارات |
-| `questions` / `quiz_attempts` | بنك الأسئلة والمحاولات |
+| `questions` / `quiz_attempts` | بنك الأسئلة (حسب **الفصل/الشابتر**) والمحاولات |
 | `polls` / `poll_votes` | الاستطلاعات |
 | `reminder_log` | منع تكرار تذكير نفس النافذة |
 | `telegram_link_tokens` | توكن لمرة واحدة لربط تيليجرام (بدل UUID في الرابط) |

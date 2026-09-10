@@ -1,5 +1,6 @@
 import { BRAND, DISCLAIMER_AR, TAGLINE_AR } from "@/shared/lib/constants";
 import Link from "next/link";
+import { WhatsAppJoinLink } from "@/features/community/components/WhatsAppJoinLink";
 
 function isRealUrl(val?: string | null) {
   if (!val?.trim()) return false;
@@ -28,16 +29,12 @@ export default function AboutPage() {
         <h2 className="font-semibold text-[var(--accent-gold)]">مجتمع واتساب</h2>
         <p className="text-[var(--text-secondary)]">
           للإعلانات السريعة والنقاش اليومي بين الطلاب (بدون أتمتة API في الـ MVP).
+          الانضمام بعد إكمال التسجيل فقط.
         </p>
         {hasWhatsapp ? (
-          <a
-            href={whatsapp}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary inline-block"
-          >
+          <WhatsAppJoinLink href={whatsapp!} className="btn-primary inline-block">
             انضم لمجموعة واتساب
-          </a>
+          </WhatsAppJoinLink>
         ) : (
           <p className="text-[var(--text-secondary)] text-xs leading-relaxed">
             الرابط غير مضبوط بعد. ضع{" "}

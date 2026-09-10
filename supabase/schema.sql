@@ -161,6 +161,8 @@ create table if not exists public.exam_events (
 create table if not exists public.questions (
   id uuid primary key default gen_random_uuid(),
   course_id uuid not null references public.courses(id),
+  /** رقم الفصل في الكتاب (1، 2، …) — الاختبارات حسب الفصل لا الكتاب كاملًا */
+  chapter smallint check (chapter is null or chapter >= 1),
   topic text,
   question text not null,
   option_a text not null,
@@ -273,6 +275,7 @@ insert into public.courses (code, name_ar, name_en, course_type, semester_key, s
   ('MATH2301', 'كالكولاس (C)', 'Calculus (C)', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
   ('MATH2302', 'معادلات تفاضلية عادية', 'Ordinary Differential Equations', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
   ('MATH2341', 'جبر خطي', 'Linear Algebra', 'major', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 3),
+  ('NURS4201', 'الإسعافات الأولية', 'First Aid', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 2),
   ('QURN3101', 'قرآن كريم (3)', 'Holy Quran (3)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1),
   ('QURN4102', 'قرآن كريم (4)', 'Holy Quran (4)', 'university', 'level2-sem1', 'المستوى الثاني — الفصل الأول', 1)
 on conflict (code) do update set
@@ -344,6 +347,9 @@ create index if not exists exam_events_starts_idx
 
 create index if not exists questions_course_active_idx
   on public.questions (course_id, active);
+create index if not exists questions_course_chapter_active_idx
+  on public.questions (course_id, chapter, active)
+  where active = true;
 
 create index if not exists quiz_attempts_user_created_idx
   on public.quiz_attempts (user_id, created_at desc);

@@ -58,7 +58,15 @@ export function QuestionsPanel({ courses }: { courses: CatalogCourse[] }) {
             </option>
           ))}
         </select>
-        <input name="topic" placeholder="موضوع" className={field} />
+        <input
+          name="chapter"
+          type="number"
+          min={1}
+          required
+          placeholder="رقم الفصل (الشابتر) مثل 1"
+          className={field}
+        />
+        <input name="topic" placeholder="موضوع داخل الفصل (اختياري)" className={field} />
         <textarea name="question" required placeholder="نص السؤال" className={field} />
         <input name="option_a" required placeholder="A" className={field} />
         <input name="option_b" required placeholder="B" className={field} />
@@ -84,15 +92,17 @@ export function QuestionsPanel({ courses }: { courses: CatalogCourse[] }) {
         <h2 className="font-semibold text-[var(--text-primary)]">استيراد CSV</h2>
         <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
           <strong className="text-[var(--text-primary)]">ما هو؟</strong> ملف
-          Excel/نص يرفع عشرات أسئلة الكويز دفعة واحدة بدل إدخال سؤال بسؤال.
-          صف واحد = سؤال واحد. العمود{" "}
-          <code className="text-[var(--text-primary)]">correct</code> يكون A أو B
-          أو C أو D، و<code className="text-[var(--text-primary)]">course_code</code>{" "}
-          مثل ECOM2402.
+          Excel/نص يرفع عشرات أسئلة الكويز دفعة واحدة. كل صف = سؤال لفصل معيّن
+          (شابتر)، وليس للمادة كاملة.
+          العمود{" "}
+          <code className="text-[var(--text-primary)]">chapter</code> رقم الفصل،
+          و<code className="text-[var(--text-primary)]">correct</code> يكون A–D، و
+          <code className="text-[var(--text-primary)]">course_code</code> مثل
+          ECOM2402.
           <br />
           الأعمدة بالترتيب:
-          course_code,topic,question,option_a,option_b,option_c,option_d,correct,explanation
-          — عيّنة جاهزة:{" "}
+          course_code,chapter,topic,question,option_a,option_b,option_c,option_d,correct,explanation
+          — عيّنة:{" "}
           <a
             href="/sample-questions.csv"
             className="text-[var(--accent-gold)] underline"

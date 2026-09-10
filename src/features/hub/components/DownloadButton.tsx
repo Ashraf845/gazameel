@@ -28,6 +28,15 @@ export function DownloadButton({
           setErr(data.error || "قاعدة البيانات غير مُعدّة — راجع .env.local");
         } else if (res.status === 401) {
           setErr("سجّل الدخول أولًا لتنزيل الملف");
+        } else if (
+          res.status === 403 &&
+          (data.code === "ONBOARDING_REQUIRED" ||
+            String(data.error || "").includes("أكمل التسجيل"))
+        ) {
+          setErr("أكمل التسجيل أولًا لتنزيل الملفات");
+          window.setTimeout(() => {
+            window.location.href = "/onboarding?next=" + encodeURIComponent(window.location.pathname);
+          }, 900);
         } else {
           setErr(data.error || "تعذّر التنزيل");
         }

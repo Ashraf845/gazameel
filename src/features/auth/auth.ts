@@ -81,6 +81,29 @@ export async function requireAdmin() {
   return profile;
 }
 
+/**
+ * مستخدم أكمل التسجيل (أو أدمن).
+ * للتنزيل ومجموعات المجتمع — لا يكفي تسجيل جوجل فقط.
+ */
+export async function requireOnboarded() {
+  const profile = await getProfile();
+  if (!profile) {
+    throw new Response(JSON.stringify({ error: "يجب تسجيل الدخول" }), {
+      status: 401,
+    });
+  }
+  if (!profile.onboarding_done && !profile.is_admin) {
+    throw new Response(
+      JSON.stringify({
+        error: "أكمل التسجيل أولًا (الاسم والرقم والمواد)",
+        code: "ONBOARDING_REQUIRED",
+      }),
+      { status: 403 }
+    );
+  }
+  return profile;
+}
+
 /** للصفحات (Server Component / layout) — redirect بدل 403 JSON */
 export async function requireAdminPage() {
   const user = await getSessionUser();
