@@ -18,7 +18,7 @@ export default async function HubPage() {
           المكتبة الأكاديمية
         </h1>
         <p className="mb-2 text-sm text-[var(--text-secondary)]">
-          {SEMESTER_LABEL_AR} · 18 ساعة معتمدة
+          {SEMESTER_LABEL_AR}
         </p>
         <p className="mb-8 text-sm text-[var(--text-secondary)]">
           تظهر الملفات المعتمدة فقط. التنزيل عبر رابط موقّت (Signed URL) بعد
