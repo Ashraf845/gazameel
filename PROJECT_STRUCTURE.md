@@ -51,7 +51,7 @@ gazameel/
 |---------|--------------|---------------------|-------------------|
 | `auth` | `auth.ts`, `client-session.ts`, `user-display.ts`, `HeroLoginLink.tsx` | `(auth)/login`, `onboarding`, `auth/*` | `(auth)/auth/*`, `onboarding` |
 | `hub` | `catalog.ts`, `updates.ts` + `DownloadButton`, `UpdatesFeed`, `HubCourseGrid`, `CourseResources` | `(hub)/hub`, `hub/[code]` | `(hub)/resources/[id]/download` |
-| `upload` | `files.ts` | `(upload)/upload`, `my-submissions` | `(upload)/upload` |
+| `upload` | `files.ts`, `direct.ts` | `(upload)/upload`, `my-submissions` | `(upload)/upload/prepare` + `complete` |
 | `moderation` | `moderation.ts` | — (يُستدعى من admin + telegram) | عبر `(admin)/admin/review|submissions` |
 | `quiz` | `quiz.ts`, `grading.ts`, `components/QuizPanel` | `(quiz)/quiz`, `progress` | `(quiz)/quiz/*`, `(quiz)/admin/questions` |
 | `calendar` | `events.ts`, `labels.ts`, `components/ExamEventsList` | `(calendar)/calendar`, `countdown` | `(calendar)/calendar/events` + عبر `(admin)/admin/exams` |
@@ -102,7 +102,7 @@ gazameel/
 
 | المجال | المسارات العامة | المنطق |
 |--------|-----------------|--------|
-| رفع ومراجعة | `/api/upload`, `/api/admin/review`, `/api/admin/submissions`, `/api/admin/resources`, `/api/resources/[id]/download` | `features/upload`, `features/moderation` |
+| رفع ومراجعة | `/api/upload/prepare` + `/complete`, `/api/admin/review`, `/api/admin/submissions`, `/api/admin/resources`, `/api/resources/[id]/download` | `features/upload`, `features/moderation` |
 | لوحة التحكم | `/api/admin/dashboard`, `/api/admin/messages` | `features/admin/dashboard` |
 | صندوق المستخدم | `/api/messages` | `features/community/messages` |
 | كويز | `/api/quiz/start`, `/api/quiz/submit`, `/api/admin/questions` | `features/quiz/quiz.ts` |
@@ -193,7 +193,7 @@ gazameel/
 |--------|-----|--------|
 | Webhook تيليجرام | `api/(automations)/telegram/webhook` → `handleTelegramUpdate` | `TELEGRAM_WEBHOOK_SECRET` |
 | ربط Webhook | `api/(automations)/telegram/setup?secret=` → `registerProductionWebhook` | نفس سرّ الـ webhook |
-| إشعار رفع جديد | `notifyAdminNewSubmission` من `api/(upload)/upload` | توكن + chat id الأدمن |
+| إشعار رفع جديد | `notifyAdminNewSubmission` من `api/(upload)/upload/complete` | توكن + chat id الأدمن |
 | موافقة/رفض من البوت | callback `approve:` / `reject:` | `ADMIN_TELEGRAM_CHAT_ID` |
 | أوامر البوت | `/start` `/help` `/countdown` `/daily` `/whoami` في `features/automations/telegram.ts` | — |
 | بث إشعار للطلاب | `broadcastTelegramToChats` من لوحة الأدمن | توكن البوت |
@@ -262,7 +262,7 @@ src/app/(<name>)/<path>/page.tsx
 |--------|----------|
 | صفحة عامة جديدة | `app/(feature)/.../page.tsx` + رابط في `shared/components/SiteNav.tsx` |
 | زر إداري جديد | `app/(admin)/admin` + `api/(admin)/admin/<action>` + منطق في `features/admin` |
-| تحقق رفع | `features/upload/files.ts` ثم `api/(upload)/upload` |
+| تحقق رفع | `features/upload/files.ts` + `direct.ts` ثم `api/(upload)/upload/prepare|complete` |
 | سؤال/كويز | `features/quiz` + `api/(quiz)/...` |
 | إشعار تيليجرام | `features/automations/telegram.ts` |
 | تذكير مجدول | وسّع `sendExamReminders` أو cron تحت `(automations)` |

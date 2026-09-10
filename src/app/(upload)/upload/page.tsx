@@ -2,19 +2,28 @@
 
 import { useState } from "react";
 import {
-  ALLOWED_MIME,
   MAX_FILE_BYTES,
   MAX_PENDING_PER_USER,
 } from "@/shared/lib/constants";
 import { COURSES, RESOURCE_TYPES } from "@/shared/lib/courses";
 import { FileDropZone } from "@/shared/components/FileDropZone";
+import {
+  mimeFromFile,
+  putFileToSignedUrl,
+  readApiError,
+  validateUploadFile,
+} from "@/features/upload/files";
 import Link from "next/link";
 
-/** صفحة رفع الطالب — منطقة ملف واضحة + زر إرسال واضح */
+/**
+ * رفع الطالب: prepare → رفع مباشر لـ Supabase → complete
+ * يتجاوز حد Vercel 4.5MB حتى يمكن رفع ملفات حتى 15MB.
+ */
 export default function UploadPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState("");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -25,40 +34,80 @@ export default function UploadPage() {
     const form = e.currentTarget;
     const fd = new FormData(form);
     const file = fd.get("file") as File | null;
+    const course = String(fd.get("course") || "");
+    const title = String(fd.get("title") || "").trim();
+    const contributor = String(fd.get("contributor") || "").trim();
+    const resourceType = String(fd.get("resource_type") || "summary");
 
-    if (!file || file.size === 0) {
-      setError("اضغط مربع الرفع واختر ملفًا أولًا.");
+    const localErr = validateUploadFile(file);
+    if (localErr) {
+      setError(localErr);
       return;
     }
-    if (file.size > MAX_FILE_BYTES) {
-      setError("الحد الأقصى 15 ميجابايت.");
-      return;
-    }
-    if (!ALLOWED_MIME.includes(file.type as (typeof ALLOWED_MIME)[number])) {
-      setError("المسموح: PDF أو صورة (jpeg/png/webp) فقط.");
+    if (!title || !course) {
+      setError("العنوان والمادة مطلوبان.");
       return;
     }
 
+    const mime = mimeFromFile(file!);
     setLoading(true);
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(
-          data.error ||
-            (res.status === 503
-              ? "قاعدة البيانات غير مُعدّة — راجع .env.local"
-              : "فشل الرفع")
-        );
+      setProgress("جارٍ تجهيز الرفع…");
+      const prepRes = await fetch("/api/upload/prepare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course,
+          title,
+          contributor,
+          resource_type: resourceType,
+          mime_type: mime,
+          file_size: file!.size,
+        }),
+      });
+      if (!prepRes.ok) {
+        setError(await readApiError(prepRes, "فشل تجهيز الرفع"));
         return;
       }
-      setMessage(data.message);
+      const prep = await prepRes.json();
+
+      setProgress("جارٍ رفع الملف…");
+      const put = await putFileToSignedUrl(prep.signedUrl, file!, mime);
+      if (!put.ok) {
+        setError(put.error);
+        return;
+      }
+
+      setProgress("جارٍ حفظ البيانات…");
+      const doneRes = await fetch("/api/upload/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: prep.path,
+          course,
+          title,
+          contributor,
+          resource_type: resourceType,
+          mime_type: mime,
+          file_size: file!.size,
+        }),
+      });
+      if (!doneRes.ok) {
+        setError(await readApiError(doneRes, "فشل حفظ الملف"));
+        return;
+      }
+      const done = await doneRes.json();
+      setMessage(done.message || "تم الإرسال للمراجعة");
       form.reset();
+    } catch {
+      setError("فشل الاتصال بالخادم — تحقق من الشبكة وأعد المحاولة");
     } finally {
       setLoading(false);
+      setProgress("");
     }
   }
 
+  const maxMb = Math.round(MAX_FILE_BYTES / (1024 * 1024));
   const field =
     "mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-[var(--text-primary)]";
 
@@ -72,8 +121,8 @@ export default function UploadPage() {
         <Link href="/login" className="text-[var(--accent-gold)] underline">
           تسجيل الدخول
         </Link>{" "}
-        وإكمال التسجيل. الملف يبدأ قيد المراجعة — حد {MAX_PENDING_PER_USER}{" "}
-        معلّقة.
+        وإكمال التسجيل. الحد {maxMb} ميجابايت — حتى {MAX_PENDING_PER_USER}{" "}
+        ملفات قيد المراجعة.
       </p>
 
       <form onSubmit={onSubmit} className="card-soft space-y-5 p-6">
@@ -126,7 +175,7 @@ export default function UploadPage() {
             name="file"
             required
             label="اضغط لاختيار ملف PDF أو صورة"
-            hint="هذا مربع رفع الملف — ليس زر الإرسال"
+            hint={`حتى ${maxMb} ميجابايت — هذا مربع اختيار الملف`}
           />
         </div>
 
@@ -145,11 +194,17 @@ export default function UploadPage() {
             className="btn-primary flex w-full cursor-pointer items-center justify-center gap-2 py-3 text-center text-base"
           >
             <SendIcon />
-            {loading ? "جاري الرفع…" : "إرسال الملف للمراجعة"}
+            {loading
+              ? progress || "جاري الرفع…"
+              : "إرسال الملف للمراجعة"}
           </button>
         </div>
 
-        {error && <p className="text-sm text-[#e07a7a]">{error}</p>}
+        {error && (
+          <p className="rounded border border-[#e07a7a]/40 bg-[color-mix(in_srgb,#e07a7a_10%,transparent)] p-3 text-sm text-[#e07a7a]">
+            {error}
+          </p>
+        )}
         {message && (
           <p className="text-sm text-[var(--accent-gold)]">{message}</p>
         )}

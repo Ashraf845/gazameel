@@ -1,36 +1,94 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/features/auth/auth";
+import { prepareDirectUpload, completeAdminUpload } from "@/features/upload/direct";
 import { createAdminClient, SUPABASE_UNCONFIGURED_AR } from "@/shared/lib/supabase/admin";
-import { validateUploadFile, sniffMime, extForMime } from "@/features/upload/files";
+import { resolveContributorDisplayName } from "@/shared/lib/contributor-name";
 import { isAllowedResourceType } from "@/shared/lib/courses";
 import { revalidatePublicContent } from "@/shared/lib/revalidate";
-import { resolveContributorDisplayName } from "@/shared/lib/contributor-name";
 import { runAfterResponse } from "@/shared/lib/background";
-import { randomUUID } from "crypto";
 
-/** رفع أدمن مباشر → approved فورًا (ملف واحد لكل طلب؛ الواجهة ترفع عدة ملفات بالتتابع) */
+/**
+ * أدمن:
+ * - action=prepare → رابط رفع موقّع (ملف كبير)
+ * - action=complete → تسجيل بعد الرفع
+ * - بدون action + فيديو برابط → نشر فوري (JSON صغير)
+ */
 export async function POST(request: Request) {
   try {
     const profile = await requireAdmin();
-    const form = await request.formData();
-    const courseCode = String(form.get("course") || "");
-    const title = String(form.get("title") || "").trim();
-    const resourceType = String(form.get("resource_type") || "summary");
-    const externalUrl = String(form.get("external_url") || "").trim();
-    const file = form.get("file") as File | null;
+    const body = await request.json();
+    const action = String(body.action || "");
 
-    if (!title || !courseCode) {
-      return NextResponse.json({ error: "العنوان والمادة مطلوبان" }, { status: 400 });
+    if (action === "prepare") {
+      const result = await prepareDirectUpload({
+        courseCode: String(body.course || ""),
+        title: String(body.title || ""),
+        resourceType: String(body.resource_type || "summary"),
+        mimeType: String(body.mime_type || ""),
+        fileSize: Number(body.file_size) || 0,
+        folder: "approved",
+        userId: profile.id,
+      });
+      if (!result.ok) {
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status }
+        );
+      }
+      return NextResponse.json({
+        path: result.path,
+        token: result.token,
+        signedUrl: result.signedUrl,
+        courseId: result.courseId,
+      });
     }
-    if (!isAllowedResourceType(resourceType)) {
+
+    if (action === "complete") {
+      const result = await completeAdminUpload({
+        adminId: profile.id,
+        profileName: profile.full_name,
+        path: String(body.path || ""),
+        courseCode: String(body.course || ""),
+        title: String(body.title || ""),
+        resourceType: String(body.resource_type || "summary"),
+        mimeType: String(body.mime_type || ""),
+        fileSize: Number(body.file_size) || 0,
+      });
+      if (!result.ok) {
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status }
+        );
+      }
+      return NextResponse.json({ ok: true, id: result.id });
+    }
+
+    // فيديو برابط خارجي — بدون ملف
+    const resourceType = String(body.resource_type || "summary");
+    if (resourceType !== "video") {
       return NextResponse.json(
-        { error: "نوع الملف غير مسموح" },
+        { error: "للملفات استخدم prepare ثم complete" },
         { status: 400 }
       );
     }
 
-    const admin = createAdminClient();
+    const courseCode = String(body.course || "").trim();
+    const title = String(body.title || "").trim();
+    const externalUrl = String(body.external_url || "").trim();
+    if (!title || !courseCode) {
+      return NextResponse.json(
+        { error: "العنوان والمادة مطلوبان" },
+        { status: 400 }
+      );
+    }
+    if (!externalUrl) {
+      return NextResponse.json({ error: "رابط الفيديو مطلوب" }, { status: 400 });
+    }
+    if (!isAllowedResourceType(resourceType)) {
+      return NextResponse.json({ error: "نوع الملف غير مسموح" }, { status: 400 });
+    }
 
+    const admin = createAdminClient();
     if (!admin) {
       return NextResponse.json(
         { error: SUPABASE_UNCONFIGURED_AR },
@@ -46,49 +104,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "المادة غير موجودة" }, { status: 400 });
     }
 
-    let storage_path: string | null = null;
-    let mime_type: string | null = null;
-    let file_size: number | null = null;
-
-    if (resourceType === "video") {
-      if (!externalUrl) {
-        return NextResponse.json({ error: "رابط الفيديو مطلوب" }, { status: 400 });
-      }
-    } else {
-      const err = validateUploadFile(file);
-      if (err) return NextResponse.json({ error: err }, { status: 400 });
-      const buffer = await file!.arrayBuffer();
-      if (!(await sniffMime(buffer, file!.type))) {
-        return NextResponse.json({ error: "نوع الملف غير صالح" }, { status: 400 });
-      }
-      const ext = extForMime(file!.type);
-      storage_path = `approved/${course.id}/${randomUUID()}.${ext}`;
-      mime_type = file!.type;
-      file_size = file!.size;
-      const { error: upErr } = await admin.storage
-        .from("resources")
-        .upload(storage_path, Buffer.from(buffer), { contentType: file!.type });
-      if (upErr) {
-        return NextResponse.json({ error: upErr.message }, { status: 500 });
-      }
-    }
-
-    // أشرف → فريق Gazameel؛ باقي الأدمن بأسمائهم
     const publisher = resolveContributorDisplayName(
       profile.full_name,
       "فريق Gazameel"
     );
-
     const { data: resource, error } = await admin
       .from("resources")
       .insert({
         course_id: course.id,
         title,
         resource_type: resourceType,
-        storage_path,
-        external_url: externalUrl || null,
-        mime_type,
-        file_size,
+        external_url: externalUrl,
         status: "approved",
         contributor_display_name: publisher,
         uploaded_by: profile.id,
@@ -99,15 +125,16 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !resource) {
-      return NextResponse.json({ error: error?.message || "فشل" }, { status: 500 });
+      return NextResponse.json(
+        { error: error?.message || "فشل" },
+        { status: 500 }
+      );
     }
 
     await admin.from("updates_feed").insert({
       message: `تم إضافة «${title}» بواسطة ${publisher}`,
       resource_id: resource.id,
     });
-
-    // إعادة التحقق بعد الرد حتى لا يعلق زر «نشر»
     runAfterResponse(async () => {
       revalidatePublicContent(courseCode);
     });
@@ -115,6 +142,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: resource.id });
   } catch (e) {
     if (e instanceof Response) return e;
-    return NextResponse.json({ error: "خطأ" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : "خطأ";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

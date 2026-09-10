@@ -12,12 +12,17 @@
 --   6. Create bucket
 --
 -- إعدادات مقترحة (Bucket → Configuration):
---   • File size limit: 15728640 (15 MB)
+--   • File size limit: 15728640 (15 MB) ← مهم لملفات 10MB
 --   • Allowed MIME types:
 --       application/pdf
 --       image/jpeg
 --       image/png
 --       image/webp
+--
+-- مسار الرفع (يتجاوز حد Vercel 4.5MB):
+--   1) السيرفر: createSignedUploadUrl
+--   2) المتصفح: PUT الملف مباشرة لـ Storage
+--   3) السيرفر: إدراج صف resources
 --
 -- مسارات يكتبها التطبيق:
 --   pending/{userId}/{uuid}.pdf|jpg|...

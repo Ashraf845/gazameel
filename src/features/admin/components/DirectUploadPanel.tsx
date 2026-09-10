@@ -3,10 +3,17 @@
 import { useState } from "react";
 import { RESOURCE_TYPES, type CatalogCourse } from "@/shared/lib/courses";
 import { FileDropZone } from "@/shared/components/FileDropZone";
+import {
+  mimeFromFile,
+  putFileToSignedUrl,
+  readApiError,
+  validateUploadFile,
+} from "@/features/upload/files";
+import { MAX_FILE_BYTES } from "@/shared/lib/constants";
 
 /**
- * رفع أدمن مباشر للمكتبة.
- * مربع اختيار ملف واضح + زر نشر واضح؛ عدة ملفات دفعة واحدة.
+ * رفع أدمن مباشر: prepare → رفع لـ Supabase → complete
+ * يدعم ملفات حتى 15MB عبر الرفع المباشر (ليس عبر جسم طلب Vercel).
  */
 export function DirectUploadPanel({ courses }: { courses: CatalogCourse[] }) {
   const [msg, setMsg] = useState<string | null>(null);
@@ -24,28 +31,31 @@ export function DirectUploadPanel({ courses }: { courses: CatalogCourse[] }) {
     const form = e.currentTarget;
     const base = new FormData(form);
     const resourceType = String(base.get("resource_type") || "summary");
+    const course = String(base.get("course") || "");
+    const baseTitle = String(base.get("title") || "").trim();
     const files = Array.from(
       (form.elements.namedItem("files") as HTMLInputElement)?.files || []
     );
 
     try {
       if (resourceType === "video") {
-        const fd = new FormData();
-        fd.set("course", String(base.get("course") || ""));
-        fd.set("title", String(base.get("title") || "").trim());
-        fd.set("resource_type", resourceType);
-        fd.set("external_url", String(base.get("external_url") || "").trim());
         setProgress("جارٍ النشر…");
         const res = await fetch("/api/admin/resources", {
           method: "POST",
-          body: fd,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            course,
+            title: baseTitle,
+            resource_type: resourceType,
+            external_url: String(base.get("external_url") || "").trim(),
+          }),
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) setErr(data.error || "فشل النشر");
-        else {
-          setMsg("نُشر في المكتبة");
-          form.reset();
+        if (!res.ok) {
+          setErr(await readApiError(res, "فشل النشر"));
+          return;
         }
+        setMsg("نُشر في المكتبة");
+        form.reset();
         return;
       }
 
@@ -54,29 +64,72 @@ export function DirectUploadPanel({ courses }: { courses: CatalogCourse[] }) {
         return;
       }
 
-      const baseTitle = String(base.get("title") || "").trim();
       let ok = 0;
       const errors: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        setProgress(`نشر ${i + 1} من ${files.length}: ${file.name}`);
-        const fd = new FormData();
-        fd.set("course", String(base.get("course") || ""));
+        const localErr = validateUploadFile(file);
+        if (localErr) {
+          errors.push(`${file.name}: ${localErr}`);
+          continue;
+        }
+
         const title =
           files.length === 1
             ? baseTitle || file.name.replace(/\.[^.]+$/, "")
             : `${baseTitle || "ملف"} (${i + 1}) — ${file.name.replace(/\.[^.]+$/, "")}`;
-        fd.set("title", title);
-        fd.set("resource_type", resourceType);
-        fd.set("file", file);
-        const res = await fetch("/api/admin/resources", {
+        const mime = mimeFromFile(file);
+
+        setProgress(`تجهيز ${i + 1}/${files.length}: ${file.name}`);
+        const prepRes = await fetch("/api/admin/resources", {
           method: "POST",
-          body: fd,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "prepare",
+            course,
+            title,
+            resource_type: resourceType,
+            mime_type: mime,
+            file_size: file.size,
+          }),
         });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) ok++;
-        else errors.push(`${file.name}: ${data.error || "فشل"}`);
+        if (!prepRes.ok) {
+          errors.push(
+            `${file.name}: ${await readApiError(prepRes, "فشل التجهيز")}`
+          );
+          continue;
+        }
+        const prep = await prepRes.json();
+
+        setProgress(`رفع ${i + 1}/${files.length}: ${file.name}`);
+        const put = await putFileToSignedUrl(prep.signedUrl, file, mime);
+        if (!put.ok) {
+          errors.push(`${file.name}: ${put.error}`);
+          continue;
+        }
+
+        setProgress(`حفظ ${i + 1}/${files.length}`);
+        const doneRes = await fetch("/api/admin/resources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "complete",
+            path: prep.path,
+            course,
+            title,
+            resource_type: resourceType,
+            mime_type: mime,
+            file_size: file.size,
+          }),
+        });
+        if (!doneRes.ok) {
+          errors.push(
+            `${file.name}: ${await readApiError(doneRes, "فشل الحفظ")}`
+          );
+          continue;
+        }
+        ok++;
       }
 
       if (ok) {
@@ -96,14 +149,15 @@ export function DirectUploadPanel({ courses }: { courses: CatalogCourse[] }) {
     }
   }
 
+  const maxMb = Math.round(MAX_FILE_BYTES / (1024 * 1024));
   const field =
     "w-full rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2 text-[var(--text-primary)]";
 
   return (
     <form className="card-soft space-y-4 p-5" onSubmit={onSubmit}>
       <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
-        اختر المادة والنوع، ثم الملفات من المربع الذهبي، ثم اضغط «نشر في
-        المكتبة». عدة ملفات مسموحة. نشر أشرف يظهر كـ «فريق Gazameel».
+        اختر الملفات من المربع الذهبي ثم «نشر في المكتبة». يدعم حتى {maxMb}{" "}
+        ميجابايت للملف (رفع مباشر للتخزين).
       </p>
       <select name="course" required className={field}>
         {courses.map((c) => (
@@ -139,7 +193,7 @@ export function DirectUploadPanel({ courses }: { courses: CatalogCourse[] }) {
           multiple
           accept=".pdf,image/*"
           label="اضغط لاختيار ملفات للرفع"
-          hint="PDF أو صور — يمكن اختيار أكثر من ملف"
+          hint={`PDF أو صور — حتى ${maxMb} ميجابايت لكل ملف`}
         />
       </div>
 
@@ -157,7 +211,11 @@ export function DirectUploadPanel({ courses }: { courses: CatalogCourse[] }) {
         </button>
       </div>
       {msg && <p className="text-sm text-[var(--accent-gold)]">{msg}</p>}
-      {err && <p className="text-sm text-[#e07a7a]">{err}</p>}
+      {err && (
+        <p className="rounded border border-[#e07a7a]/40 bg-[color-mix(in_srgb,#e07a7a_10%,transparent)] p-3 text-sm text-[#e07a7a]">
+          {err}
+        </p>
+      )}
     </form>
   );
 }
